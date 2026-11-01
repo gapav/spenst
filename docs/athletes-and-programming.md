@@ -2,7 +2,7 @@
 
 *Design, 7 October 2026. Describes the model the code implements, and what is
 still to build for athletes. The decisions behind it are listed at the end and
-in `IMPLEMENTATION_PLAN.md`.*
+in `docs/decisions.md`.*
 
 Testing is Spenst's front door; programming is where testing pays off. The
 model, in one sentence: **each team trains one season plan of shared

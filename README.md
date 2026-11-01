@@ -30,7 +30,9 @@ npm run build
 With no Supabase variables the app runs in demo mode: two generated squads, any
 email and password signs in, and nothing is saved. To use a real database,
 copy `site/.env.example` to `site/.env.local`, create a Supabase project, and
-apply `site/supabase/migrations/202610070001_initial.sql` by hand in the SQL editor.
+apply the migrations in `site/supabase/migrations/` by hand in the SQL editor,
+in order. `DEPLOYMENT.md` keeps the ledger of which are applied where.
 
-`IMPLEMENTATION_PLAN.md` holds the product brief, the decisions the template
-makes, and the open questions. `CLAUDE.md` describes the code.
+`docs/product.md` holds the product brief, `docs/decisions.md` the decisions
+and open questions, and `work/` the work, one file per change. `CLAUDE.md`
+describes the code.

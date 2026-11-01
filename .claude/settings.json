@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "deny": [
+      "Bash(supabase db *)",
+      "Bash(supabase migration *)",
+      "Bash(supabase start)",
+      "Bash(supabase start *)",
+      "Bash(npx supabase *)",
+      "Bash(psql *)",
+      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/raw/**)",
+      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/wiki/athlete/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-applied-migrations.sh",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}
