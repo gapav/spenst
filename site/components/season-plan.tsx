@@ -1,20 +1,18 @@
 "use client";
 
-import { CalendarPlus, ChevronRight, Pencil, Plus, Send, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Pencil, Plus, Send, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSpenst } from "./app-provider";
 import { AppShell } from "./app-shell";
 import { PageHeading } from "./page-heading";
 import { SeasonTimeline, type TimelineSelection } from "./season-timeline";
+import { CalendarGrid, MixLegend, PlannerProvider, ProgressionTable, WeekStrip } from "./week-planner";
 import { TextCommitField } from "./target-field";
 import { Button, EmptyState, Modal, Tag, inputClass, type TagTone } from "./ui";
 import {
   addDays, isoWeek, mondayOf, noteLines, overlapsOnLevel, periodAt, periodEndsOn, periodKindLabels, periodLevelLabels, seasonEndsOn, seasonWeeks,
   spanFromColumns, weekIndex, zoneLabel, type Period, type PeriodKind, type PeriodLevel, type Season,
 } from "@/lib/season";
-import { summarizeContent } from "@/lib/training";
 import type { TrainingSession } from "@/lib/types";
 import { VELOCITY_ZONES, type ZoneId } from "@/lib/vbt";
 import { cn, countLabel, formatDay, localDateKey } from "@/lib/utils";
@@ -25,7 +23,7 @@ const shortDay = (dateKey: string) => formatDay(dateKey, { day: "numeric", month
 type DialogState = { mode: "create"; draft: Omit<Period, "id"> } | { mode: "edit"; draft: Period } | null;
 
 export function SeasonPlanScreen() {
-  const { currentTeam, seasons, periods, weekNotes, sessions, workspaceLoaded, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod } = useSpenst();
+  const { currentTeam, seasons, periods, weekNotes, sessions, matches, workspaceLoaded, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod } = useSpenst();
   const [today, setToday] = useState<string | null>(null);
   useEffect(() => { const tick = () => setToday(localDateKey(new Date())); tick(); }, []);
   const teamSeasons = useMemo(() => seasons.filter((season) => season.teamId === currentTeam?.id).sort((a, b) => b.startsOn.localeCompare(a.startsOn)), [seasons, currentTeam?.id]);
@@ -35,8 +33,16 @@ export function SeasonPlanScreen() {
     ?? teamSeasons[0] ?? null;
   const seasonPeriods = useMemo(() => periods.filter((period) => period.seasonId === season?.id), [periods, season?.id]);
   const teamSessions = useMemo(() => sessions.filter((session) => session.teamId === currentTeam?.id), [sessions, currentTeam?.id]);
+  const teamMatches = useMemo(() => matches.filter((match) => match.teamId === currentTeam?.id), [matches, currentTeam?.id]);
   const [selection, setSelection] = useState<TimelineSelection>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
+  useEffect(() => {
+    if (!selection || dialog) return;
+    // The planner clears its selection first, and the drawer closes itself; either marks the event handled.
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !event.defaultPrevented && !document.querySelector("[role=dialog][aria-modal=true]")) setSelection(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection, dialog]);
 
   const openCreate = useCallback((level: PeriodLevel, from: number, to: number) => {
     if (!season) return;
@@ -64,11 +70,11 @@ export function SeasonPlanScreen() {
           <Button variant="secondary" size="sm" onClick={() => openFirstFree(season, seasonPeriods, "phase", openCreate)}><Plus size={15} />New phase</Button>
           <Button variant="secondary" size="sm" onClick={() => openFirstFree(season, seasonPeriods, "block", openCreate)}><Plus size={15} />New block</Button>
         </div>
-        <p className="year-hint"><span className="hidden sm:inline">Drag across empty weeks to add a phase or block.</span><span className="sm:hidden">Tap an empty week to add a phase or block.</span> Tap a week under “Sessions” to see its sessions.</p>
+        <p className="year-hint"><span className="hidden sm:inline">Drag across empty weeks to add a phase or block.</span><span className="sm:hidden">Tap an empty week to add a phase or block.</span> Open a block or a week to plan it day by day.</p>
       </div>
 
       <section className="spenst-card year-card" aria-label="Season timeline">
-        <SeasonTimeline season={season} periods={seasonPeriods} weekNotes={weekNotes.filter((note) => note.seasonId === season.id)} sessions={teamSessions} today={today} selection={selection} onSelect={setSelection} onCreate={openCreate} />
+        <SeasonTimeline season={season} periods={seasonPeriods} weekNotes={weekNotes.filter((note) => note.seasonId === season.id)} sessions={teamSessions} matches={teamMatches} today={today} selection={selection} onSelect={setSelection} onCreate={openCreate} />
         <div className="year-footer">
           <label className="year-throughline-field">
             <span>Throughline</span>
@@ -79,9 +85,11 @@ export function SeasonPlanScreen() {
       </section>
 
       <div className="mt-5">
-        {selectedPeriod ? <PeriodPanel season={season} period={selectedPeriod} periods={seasonPeriods} sessions={teamSessions} onEdit={() => setDialog({ mode: "edit", draft: selectedPeriod })} onDelete={() => { setSelection(null); void deletePeriod(selectedPeriod.id).catch(() => undefined); }} />
-          : selectedWeek ? <WeekPanel season={season} weekIndex={selectedWeek.index} periods={seasonPeriods} sessions={teamSessions} />
-          : <PhaseOverview season={season} periods={seasonPeriods} sessions={teamSessions} onSelect={(id) => setSelection({ type: "period", id })} />}
+        <PlannerProvider season={season} periods={seasonPeriods} sessions={teamSessions} matches={teamMatches} today={today}>
+          {selectedPeriod ? <PeriodPanel key={selectedPeriod.id} period={selectedPeriod} sessions={teamSessions} onEdit={() => setDialog({ mode: "edit", draft: selectedPeriod })} onClose={() => setSelection(null)} />
+            : selectedWeek ? <WeekPanel season={season} weekIndex={selectedWeek.index} periods={seasonPeriods} onClose={() => setSelection(null)} />
+            : <PhaseOverview season={season} periods={seasonPeriods} sessions={teamSessions} onSelect={(id) => setSelection({ type: "period", id })} />}
+        </PlannerProvider>
       </div>
     </>}
 
@@ -91,6 +99,7 @@ export function SeasonPlanScreen() {
       periods={seasonPeriods}
       state={dialog}
       onClose={() => setDialog(null)}
+      onDelete={dialog.mode === "edit" ? () => { const id = dialog.draft.id; setDialog(null); setSelection(null); void deletePeriod(id).catch(() => undefined); } : undefined}
       onSave={async (draft) => {
         if (dialog.mode === "create") { const id = await createPeriod(draft); setSelection({ type: "period", id }); }
         else await updatePeriod(dialog.draft.id, draft);
@@ -141,10 +150,13 @@ function YearLegend() {
     {VELOCITY_ZONES.map((zone) => <li key={zone.id}><i className="year-swatch" data-emphasis={zone.id} />{zone.label}</li>)}
     <li><i className="year-dot is-published" />Published session</li>
     <li><i className="year-dot" />Draft</li>
+    <li><i className="year-match" />Match</li>
+    <li><i className="year-swatch year-swatch-congested" />Congested week</li>
   </ul>;
 }
 
-function PeriodDialog({ season, periods, state, onClose, onSave }: { season: Season; periods: readonly Period[]; state: Exclude<DialogState, null>; onClose(): void; onSave(draft: Omit<Period, "id">): Promise<void> }) {
+function PeriodDialog({ season, periods, state, onClose, onSave, onDelete }: { season: Season; periods: readonly Period[]; state: Exclude<DialogState, null>; onClose(): void; onSave(draft: Omit<Period, "id">): Promise<void>; onDelete?(): void }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [draft, setDraft] = useState<Omit<Period, "id">>(state.draft);
   const [weeksText, setWeeksText] = useState(String(state.draft.weeks));
   const [error, setError] = useState<string | null>(null);
@@ -175,15 +187,54 @@ function PeriodDialog({ season, periods, state, onClose, onSave }: { season: Sea
       <label className="grid gap-1.5 text-sm font-semibold">Focus<input className={inputClass} value={draft.focus} onChange={(event) => set({ focus: event.target.value })} placeholder="One sentence: what the period is for" /></label>
       <label className="grid gap-1.5 text-sm font-semibold">Notes <span className="font-normal text-[var(--ink-soft)]">One point per line</span><textarea className={`${inputClass} min-h-28 py-2.5 leading-6`} value={draft.notes} onChange={(event) => set({ notes: event.target.value })} placeholder={"Acceleration and turns\nInjury prevention every session"} /></label>
       {(error || clash) && <p role="alert" className="rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-sm font-semibold text-[var(--danger)]">{error ?? `Overlaps with “${clash?.title}”. Move or shorten one of them.`}</p>}
-      <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={busy || Boolean(clash)}>{busy ? "Saving …" : "Save"}</Button></div>
+      <div className="flex flex-wrap items-center gap-2">
+        {onDelete && (confirmDelete
+          ? <Button type="button" variant="danger" onClick={onDelete}><Trash2 size={15} />Delete the {periodLevelLabels[draft.level].toLocaleLowerCase("en-GB")}</Button>
+          : <Button type="button" variant="ghost" className="text-[var(--danger)]" onClick={() => setConfirmDelete(true)}><Trash2 size={15} />Delete</Button>)}
+        <div className="ml-auto flex gap-2"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={busy || Boolean(clash)}>{busy ? "Saving …" : "Save"}</Button></div>
+      </div>
     </form>
   </Modal>;
 }
 
 function PhaseOverview({ season, periods, sessions, onSelect }: { season: Season; periods: readonly Period[]; sessions: readonly TrainingSession[]; onSelect(id: string): void }) {
   const phases = periods.filter((period) => period.level === "phase").sort((a, b) => a.startsOn.localeCompare(b.startsOn));
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: true });
+  const updateEdges = useCallback(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const start = row.scrollLeft <= 4;
+    const end = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
+    setEdges((prev) => prev.start === start && prev.end === end ? prev : { start, end });
+  }, []);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    updateEdges();
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [updateEdges, phases.length]);
+  const page = (direction: 1 | -1) => {
+    const row = rowRef.current;
+    if (!row) return;
+    const card = row.querySelector<HTMLElement>(".phase-card");
+    const step = card ? card.offsetWidth + 14 : 294;
+    row.scrollBy({ left: direction * Math.max(step, Math.floor(row.clientWidth / step) * step), behavior: "smooth" });
+  };
   if (!phases.length) return <EmptyState icon={<CalendarPlus size={24} />} title="No phases yet" body="Drag across the weeks under “Phases” to divide the season — pre-season, competition, breaks." />;
-  return <div className="phase-cards">
+  const scrollable = !(edges.start && edges.end);
+  return <section className="phase-overview" aria-label="Phases">
+    <div className="phase-overview-head">
+      <h2>Phases <span>{phases.length}</span></h2>
+      {scrollable && <div className="phase-overview-nav">
+        <Button variant="secondary" size="sm" className="w-9 px-0" aria-label="Previous phases" disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={16} /></Button>
+        <Button variant="secondary" size="sm" className="w-9 px-0" aria-label="Next phases" disabled={edges.end} onClick={() => page(1)}><ChevronRight size={16} /></Button>
+      </div>}
+    </div>
+    <div className="phase-cards-frame" data-fade-start={!edges.start || undefined} data-fade-end={!edges.end || undefined}>
+    <div className="phase-cards" ref={rowRef} onScroll={updateEdges}>
     {phases.map((phase) => {
       const count = sessions.filter((session) => session.scheduledOn && session.scheduledOn >= phase.startsOn && session.scheduledOn <= periodEndsOn(phase)).length;
       return <button key={phase.id} type="button" className="phase-card" data-kind={phase.kind} onClick={() => onSelect(phase.id)}>
@@ -194,15 +245,40 @@ function PhaseOverview({ season, periods, sessions, onSelect }: { season: Season
         {season.throughline && phase.kind !== "break" && <em>“{season.throughline}”</em>}
       </button>;
     })}
-  </div>;
+  </div>
+    </div>
+  </section>;
 }
 
-function PeriodPanel({ season, period, periods, sessions, onEdit, onDelete }: { season: Season; period: Period; periods: readonly Period[]; sessions: readonly TrainingSession[]; onEdit(): void; onDelete(): void }) {
+type BlockView = "weeks" | "calendar" | "progression";
+const VIEW_KEY = "spenst.block-view";
+const DETAIL_KEY = "spenst.calendar-detailed";
+
+function readSetting(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+const noSubscription = () => () => undefined;
+/** A setting saved in this browser; null on the server and in the render that hydrates. */
+function useSavedSetting(key: string): string | null {
+  return useSyncExternalStore(noSubscription, () => readSetting(key), () => null);
+}
+function writeSetting(key: string, value: string) {
+  try { window.localStorage.setItem(key, value); } catch { /* the choice just will not survive a reload */ }
+}
+
+function PeriodPanel({ period, sessions, onEdit, onClose }: { period: Period; sessions: readonly TrainingSession[]; onEdit(): void; onClose(): void }) {
   const { setSessionsStatus } = useSpenst();
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const inPeriod = sessions.filter((session) => session.scheduledOn && session.scheduledOn >= period.startsOn && session.scheduledOn <= periodEndsOn(period));
   const drafts = inPeriod.filter((session) => session.status === "draft");
-  const weeks = Array.from({ length: period.weeks }, (_, index) => addDays(period.startsOn, index * 7));
+  const weeks = useMemo(() => Array.from({ length: period.weeks }, (_, index) => addDays(period.startsOn, index * 7)), [period.startsOn, period.weeks]);
+  // Remembered per browser, read after mount so the server and the first render agree.
+  const savedView = useSavedSetting(VIEW_KEY);
+  const savedDetail = useSavedSetting(DETAIL_KEY);
+  const [chosenView, setView] = useState<BlockView | null>(null);
+  const [chosenDetail, setDetailed] = useState<boolean | null>(null);
+  const view: BlockView = chosenView ?? (savedView === "calendar" || savedView === "progression" ? savedView : "weeks");
+  const detailed = chosenDetail ?? savedDetail === "true";
+  const choose = (next: BlockView) => { setView(next); writeSetting(VIEW_KEY, next); };
   return <section className="spenst-card period-panel" aria-labelledby="period-title">
     <header className="period-panel-head">
       <div className="min-w-0">
@@ -212,25 +288,38 @@ function PeriodPanel({ season, period, periods, sessions, onEdit, onDelete }: { 
         </div>
         <h2 id="period-title">{period.title}</h2>
         <p className="period-dates">Weeks {isoWeek(period.startsOn)}–{isoWeek(periodEndsOn(period))} · {shortDay(period.startsOn)}–{shortDay(periodEndsOn(period))} · {countLabel(period.weeks, "week", "weeks")} · {countLabel(inPeriod.length, "session", "sessions")}</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
+        <div className="period-panel-actions">
         {drafts.length > 0 && <Button size="sm" onClick={() => void setSessionsStatus(drafts.map((session) => session.id), "published").catch(() => undefined)}><Send size={15} />Publish {countLabel(drafts.length, "draft", "drafts")}</Button>}
         <Button variant="secondary" size="sm" onClick={onEdit}><Pencil size={15} />Edit</Button>
-        {confirmDelete ? <Button variant="danger" size="sm" onClick={onDelete}>Delete the {period.level}</Button> : <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} aria-label="Delete"><Trash2 size={15} /></Button>}
+        </div>
       </div>
     </header>
+    <Button variant="ghost" size="sm" className="period-panel-close w-9 px-0" onClick={onClose} aria-label="Close"><X size={17} /></Button>
     {(period.focus || period.notes) && <div className="period-focus">
       {period.focus && <p className="period-focus-line">{period.focus}</p>}
       {noteLines(period.notes).length > 0 && <ul>{noteLines(period.notes).map((line) => <li key={line}>{line}</li>)}</ul>}
     </div>}
-    <h3 className="period-weeks-head">Week by week</h3>
-    <div className="spenst-rows">
-      {weeks.map((weekStart, index) => <WeekRow key={weekStart} season={season} weekStart={weekStart} label={`Week ${index + 1}`} periods={periods} sessions={sessions} showBlock={period.level === "phase"} />)}
+    <div className="period-view-bar">
+      <div className="segmented" role="tablist" aria-label="View">
+        {([["weeks", "Weeks"], ["calendar", "Calendar"], ["progression", "Progression"]] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={view === key} className={cn(view === key && "is-on")} onClick={() => choose(key)}>{label}</button>)}
+      </div>
+      {view === "calendar" && <label className="period-view-toggle"><input type="checkbox" checked={detailed} onChange={(event) => { setDetailed(event.target.checked); writeSetting(DETAIL_KEY, String(event.target.checked)); }} />Show exercises</label>}
+      <MixLegend />
     </div>
+    {view === "weeks" && <div className="week-strips">
+      {weeks.map((weekStart, index) => <WeekStrip key={weekStart} weekStart={weekStart} label={`Week ${index + 1}`} showBlock={period.level === "phase"} />)}
+    </div>}
+    {view === "calendar" && <CalendarGrid weeks={weeks} detailed={detailed} showBlock={period.level === "phase"} />}
+    {view === "progression" && <ProgressionTable weeks={weeks} />}
+    <PlannerHint />
   </section>;
 }
 
-function WeekPanel({ season, weekIndex: index, periods, sessions }: { season: Season; weekIndex: number; periods: readonly Period[]; sessions: readonly TrainingSession[] }) {
+function PlannerHint() {
+  return <p className="planner-hint"><span className="hidden sm:inline">Drag a session to move it, ⌥-drag to copy. Select with Shift-click, then ⌘C, and ⌘V on a day. Delete removes; every change can be undone.</span><span className="sm:hidden">Tap “+” on a day to add a session or a match.</span></p>;
+}
+
+function WeekPanel({ season, weekIndex: index, periods, onClose }: { season: Season; weekIndex: number; periods: readonly Period[]; onClose(): void }) {
   const weekStart = addDays(season.startsOn, index * 7);
   const phase = periodAt(periods, "phase", weekStart);
   const block = periodAt(periods, "block", weekStart);
@@ -245,50 +334,10 @@ function WeekPanel({ season, weekIndex: index, periods, sessions }: { season: Se
         <p className="period-dates">{formatDay(weekStart, { weekday: "long", day: "numeric", month: "long" })} – {formatDay(addDays(weekStart, 6), { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
     </header>
+    <Button variant="ghost" size="sm" className="period-panel-close w-9 px-0" onClick={onClose} aria-label="Close"><X size={17} /></Button>
     {(block?.focus || phase?.focus) && <div className="period-focus"><p className="period-focus-line">{block?.focus || phase?.focus}</p></div>}
-    <div className="spenst-rows"><WeekRow season={season} weekStart={weekStart} label="Sessions" periods={periods} sessions={sessions} showBlock={false} expanded /></div>
+    <div className="week-strips"><WeekStrip weekStart={weekStart} label="This week" showBlock={false} /></div>
+    <PlannerHint />
   </section>;
 }
 
-/** One line of Ballou’s week table: dates, the block, a label, the sessions — and a way to add one. */
-function WeekRow({ season, weekStart, label, periods, sessions, showBlock, expanded = false }: { season: Season; weekStart: string; label: string; periods: readonly Period[]; sessions: readonly TrainingSession[]; showBlock: boolean; expanded?: boolean }) {
-  const { weekNotes, setWeekNote, createSession, exerciseById } = useSpenst();
-  const router = useRouter();
-  const [adding, setAdding] = useState(false);
-  const weekEnd = addDays(weekStart, 6);
-  const note = weekNotes.find((entry) => entry.seasonId === season.id && entry.weekStart === weekStart)?.label ?? "";
-  const block = showBlock ? periodAt(periods, "block", weekStart) : null;
-  const inWeek = sessions.filter((session) => session.scheduledOn && session.scheduledOn >= weekStart && session.scheduledOn <= weekEnd).sort((a, b) => (a.scheduledOn ?? "").localeCompare(b.scheduledOn ?? ""));
-
-  async function add() {
-    if (adding) return;
-    setAdding(true);
-    // On the Tuesday by default — the coach moves it in the builder.
-    try { const id = await createSession({ title: "Session", scheduledOn: addDays(weekStart, 1) }); router.push(`/plan/sessions/${id}`); }
-    catch { setAdding(false); }
-  }
-
-  return <div className={cn("week-row", expanded && "is-expanded")}>
-    <div className="week-row-when">
-      <strong>{label}</strong>
-      <small>{shortDay(weekStart)}–{shortDay(weekEnd)}</small>
-    </div>
-    <div className="week-row-what">
-      <div className="flex flex-wrap items-center gap-2">
-        {block && <Tag tone="sage">{block.title}</Tag>}
-        <TextCommitField label={`Note for the week starting ${shortDay(weekStart)}`} className="week-note-input" value={note} placeholder="Note, e.g. “Match week ×2”" onCommit={(next) => void setWeekNote(season.id, weekStart, next).catch(() => undefined)} />
-      </div>
-      <ul className="week-sessions">
-        {inWeek.map((session) => {
-          const summary = summarizeContent(session.content, exerciseById);
-          return <li key={session.id}><Link href={`/plan/sessions/${session.id}`} className="week-session">
-            <span className={cn("year-dot", session.status === "published" && "is-published")} aria-hidden="true" />
-            <span className="min-w-0 flex-1"><strong>{session.scheduledOn ? formatDay(session.scheduledOn, { weekday: "short" }) : ""} · {session.title}</strong><small>{summary.exercises ? `${countLabel(summary.exercises, "exercise", "exercises")} · about ${summary.minutes} min` : "Empty"}{session.status === "draft" ? " · draft" : ""}</small></span>
-            <ChevronRight size={16} aria-hidden="true" />
-          </Link></li>;
-        })}
-        <li><button type="button" className="week-add" onClick={() => void add()} disabled={adding}><Plus size={14} />{adding ? "Creating …" : "New session"}</button></li>
-      </ul>
-    </div>
-  </div>;
-}

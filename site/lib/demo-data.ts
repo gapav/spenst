@@ -3,7 +3,7 @@ import { BUILTIN_BATTERIES, TESTS, type TestKey } from "./power-profile";
 import type { Period, Season, WeekNote } from "./season";
 import { sectionPresets, type ExerciseSlot, type SectionKind, type SessionContent, type SetGroup, type SlotVariant } from "./training";
 import { EMPTY_VALUES as EMPTY_OVR_VALUES, rowChecksum, type OvrRow } from "./ovr-import";
-import type { Athlete, HandballPosition, Measurement, Profile, Sex, Team, TestDay, TestResult, TrainingSession } from "./types";
+import type { Athlete, HandballPosition, Match, Measurement, Profile, Sex, Team, TestDay, TestResult, TrainingSession } from "./types";
 
 /**
  * Preview data for when Supabase is not configured. Results are generated from
@@ -175,6 +175,26 @@ export const demoWeekNotes: WeekNote[] = [
   { seasonId: J, weekStart: "2026-10-05", label: "Autumn break" },
 ];
 
+/** The senior league: Saturdays at 16:00, and a Wednesday match in the “Match week ×2”. */
+const fixture = (playedOn: string, opponent: string, home: boolean, extra: Partial<Match> = {}): Match =>
+  ({ id: `match-${playedOn}`, teamId: "team-senior", playedOn, kickOff: "16:00", opponent, home, kind: "league", priority: false, note: "", ...extra });
+
+export const demoMatches: Match[] = [
+  fixture("2026-09-19", "Fjellby", true),
+  fixture("2026-09-26", "Nordvik", false),
+  fixture("2026-10-03", "Elvdal", true),
+  fixture("2026-10-10", "Sjøholm", false),
+  fixture("2026-10-17", "Bergli", true),
+  fixture("2026-10-21", "Vestby", false, { kickOff: "19:30", kind: "cup", note: "Cup, round 3" }),
+  fixture("2026-10-24", "Fjellby", false),
+  fixture("2026-10-31", "Nordvik", true),
+  fixture("2026-11-07", "Elvdal", false),
+  fixture("2026-11-14", "Sjøholm", true),
+  fixture("2026-11-21", "Bergli", false, { priority: true, note: "Top of the table" }),
+  fixture("2026-11-28", "Vestby", true),
+  fixture("2026-12-05", "Strandvik", false),
+];
+
 let demoId = 0;
 const nextId = (prefix: string) => `${prefix}-${(demoId += 1)}`;
 const range = (min: number, max = min) => ({ min, max });
@@ -200,7 +220,7 @@ function content(...sections: [SectionKind, ExerciseSlot[]][]): SessionContent {
 
 export const demoSessions: TrainingSession[] = [
   {
-    id: "session-senior-strength-a", teamId: "team-senior", scheduledOn: "2026-10-06", title: "Strength A", status: "published",
+    id: "session-senior-strength-a", teamId: "team-senior", scheduledOn: "2026-10-06", slot: null, title: "Strength A", status: "published",
     content: content(
       ["prep", [slot("skadefri_warmup", [{ count: 1, time: range(600) }])]],
       ["speed", [
@@ -222,7 +242,7 @@ export const demoSessions: TrainingSession[] = [
     ),
   },
   {
-    id: "session-senior-speed", teamId: "team-senior", scheduledOn: "2026-10-08", title: "Speed and power", status: "published",
+    id: "session-senior-speed", teamId: "team-senior", scheduledOn: "2026-10-08", slot: null, title: "Speed and power", status: "published",
     content: content(
       ["prep", [slot("activation", [{ count: 1, time: range(300) }])]],
       ["speed", [
@@ -237,21 +257,43 @@ export const demoSessions: TrainingSession[] = [
     ),
   },
   {
-    id: "session-senior-strength-a2", teamId: "team-senior", scheduledOn: "2026-10-13", title: "Strength A", status: "published",
+    id: "session-senior-strength-a2", teamId: "team-senior", scheduledOn: "2026-10-13", slot: null, title: "Strength A", status: "published",
     content: content(
       ["main", [
-        slot("back_squat", [{ count: 6, reps: range(3), load: { ...range(100), basis: "kg" }, velocity: range(0.9, 1.05), restSeconds: 150 }]),
+        slot("back_squat", [{ count: 5, reps: range(3), load: { ...range(105), basis: "kg" }, velocity: range(0.9, 1.05), restSeconds: 150 }]),
         slot("trap_bar_deadlift", [{ count: 4, reps: range(3), load: { ...range(120), basis: "kg" }, velocity: range(0.75, 0.9), restSeconds: 150 }]),
         slot("ssb_split_squat", [{ count: 3, reps: range(6), rpe: range(8), perSide: true, restSeconds: 90 }], { easier: "rfe_split_squat" }),
       ]],
     ),
   },
   {
-    id: "session-senior-strength-b", teamId: "team-senior", scheduledOn: "2026-10-15", title: "Speed and power", status: "draft",
+    id: "session-senior-strength-b", teamId: "team-senior", scheduledOn: "2026-10-15", slot: null, title: "Speed and power", status: "draft",
     content: content(["speed", [slot("hurdle_hop", [{ count: 3, contacts: range(6), height: range(40), restSeconds: 60 }], { easier: "pogo_jump" })]]),
   },
+  // The two-match week (Wednesday and Saturday): the main lift moves on, and
+  // Thursday has two sessions.
   {
-    id: "session-j15-base", teamId: "team-j15", scheduledOn: "2026-10-13", title: "Strength and jumps", status: "draft",
+    id: "session-senior-strength-a3", teamId: "team-senior", scheduledOn: "2026-10-19", slot: null, title: "Strength A", status: "draft",
+    content: content(
+      ["main", [
+        slot("back_squat", [{ count: 4, reps: range(3), load: { ...range(110), basis: "kg" }, velocity: range(0.9, 1.05), restSeconds: 150 }]),
+        slot("trap_bar_deadlift", [{ count: 3, reps: range(3), load: { ...range(120), basis: "kg" }, velocity: range(0.75, 0.9), restSeconds: 150 }]),
+      ]],
+    ),
+  },
+  {
+    id: "session-senior-recovery", teamId: "team-senior", scheduledOn: "2026-10-22", slot: "am", title: "Recovery", status: "draft",
+    content: content(["prep", [slot("activation", [{ count: 1, time: range(900) }])]]),
+  },
+  {
+    id: "session-senior-primer", teamId: "team-senior", scheduledOn: "2026-10-22", slot: "pm", title: "Speed primer", status: "draft",
+    content: content(["speed", [
+      slot("acceleration_10", [{ count: 4, distance: range(10), restSeconds: 120 }]),
+      slot("pogo_jump", [{ count: 2, contacts: range(10), restSeconds: 60 }]),
+    ]]),
+  },
+  {
+    id: "session-j15-base", teamId: "team-j15", scheduledOn: "2026-10-13", slot: null, title: "Strength and jumps", status: "draft",
     content: content(
       ["prep", [slot("skadefri_warmup", [{ count: 1, time: range(900) }])]],
       ["speed", [

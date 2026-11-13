@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronUp, Link2, Plus, Send, Trash2, Undo2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronUp, Link2, Plus, Send, Trash2, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -9,7 +9,9 @@ import { AppShell } from "./app-shell";
 import { ExercisePicker } from "./exercise-picker";
 import { CountField, RestField, TargetField, TextCommitField } from "./target-field";
 import { Button, EmptyState, Tag } from "./ui";
+import { matchDayLabel, matchTitle } from "@/lib/match-days";
 import { isoWeek, periodAt, zoneLabel } from "@/lib/season";
+import type { SessionSlot } from "@/lib/types";
 import {
   addSection, addSetGroup, addSlot, describeSetGroup, detachVariantPrescription, formatTarget, levelLabels, metricLabels, metricUnits, modalityLabels,
   moveSection, moveSlot, newSlot, removeSection, removeSetGroup, removeSlot, renameSection, sectionPresets, setVariant, slotLabels, summarizeContent,
@@ -27,18 +29,31 @@ type Edit = (change: (content: SessionContent) => SessionContent) => void;
 
 type Picking = { for: "slot"; sectionId: string; kind: SectionKind } | { for: "variant"; slotId: string; level: VariantLevel; base: Exercise } | null;
 
+/** The builder as its own page — what a link or a reload of `/plan/sessions/[id]` opens. */
 export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, seasons, periods, teams, exercises, exerciseById, workspaceLoaded, updateSession, editSessionContent, deleteSession } = useSpenst();
+  const router = useRouter();
+  return <AppShell><div className="spenst-page builder-page">
+    <Link href="/plan" className="spenst-text-link mb-3 text-[var(--ink-soft)]"><ArrowLeft size={16} />Season plan</Link>
+    <SessionBuilder sessionId={sessionId} onDeleted={() => router.push("/plan")} />
+  </div></AppShell>;
+}
+
+/**
+ * The builder itself. The season plan shows it in a drawer over the plan
+ * (`onClose` set: a close button instead of the page's back link); the page
+ * above shows it on its own.
+ */
+export function SessionBuilder({ sessionId, onDeleted, onClose }: { sessionId: string; onDeleted(): void; onClose?(): void }) {
+  const { sessions, seasons, periods, teams, matches, exercises, exerciseById, workspaceLoaded, updateSession, editSessionContent, deleteSession } = useSpenst();
   const session = sessions.find((candidate) => candidate.id === sessionId) ?? null;
   const [picking, setPicking] = useState<Picking>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const router = useRouter();
   const summary = useMemo(() => session ? summarizeContent(session.content, exerciseById) : null, [session, exerciseById]);
   const labels = useMemo(() => session ? slotLabels(session.content) : new Map<string, string>(), [session]);
 
-  if (!workspaceLoaded) return <AppShell><div className="spenst-page"><p role="status" className="spenst-loading">Loading the session …</p></div></AppShell>;
-  if (!session || !summary) return <AppShell><div className="spenst-page"><EmptyState icon={<Plus size={24} />} title="Session not found" body="The session was deleted, or belongs to a team you are not on." action={<Link className="spenst-action" href="/plan">To the season plan</Link>} /></div></AppShell>;
+  if (!workspaceLoaded) return <p role="status" className="spenst-loading">Loading the session …</p>;
+  if (!session || !summary) return <EmptyState icon={<Plus size={24} />} title="Session not found" body="The session was deleted, or belongs to a team you are not on." action={onClose ? <Button variant="secondary" onClick={onClose}>Back to the plan</Button> : <Link className="spenst-action" href="/plan">To the season plan</Link>} />;
 
   // Every content change goes through the provider’s queue; a failure is
   // already reported there, so the builder only has to not crash.
@@ -49,11 +64,10 @@ export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
   const phase = session.scheduledOn ? periodAt(seasonPeriods, "phase", session.scheduledOn) : null;
   const block = session.scheduledOn ? periodAt(seasonPeriods, "block", session.scheduledOn) : null;
   const published = session.status === "published";
+  const matchDay = session.scheduledOn ? matchDayLabel(session.scheduledOn, matches.filter((match) => match.teamId === session.teamId)) : null;
   const presets = (Object.keys(sectionPresets) as Exclude<SectionKind, "custom">[]).filter((kind) => !session.content.sections.some((section) => section.kind === kind));
 
-  return <AppShell><div className="spenst-page builder-page">
-    <Link href="/plan" className="spenst-text-link mb-3 text-[var(--ink-soft)]"><ArrowLeft size={16} />Season plan</Link>
-
+  return <>
     <header className="spenst-card builder-head">
       <div className="min-w-0 flex-1">
         <p className="spenst-eyebrow">{[team?.shortName, session.scheduledOn && `week ${isoWeek(session.scheduledOn)}`, phase?.title, block?.title].filter(Boolean).join(" · ")}</p>
@@ -61,6 +75,8 @@ export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
         {(block?.focus || block?.emphasis) && <p className="builder-context">{block.emphasis && <Tag tone="sage">{zoneLabel(block.emphasis)}</Tag>} {block.focus}</p>}
         <div className="builder-meta">
           <label className="metric-field"><span>Date</span><input className="metric-input is-date" type="date" value={session.scheduledOn ?? ""} onChange={(event) => void updateSession(session.id, { scheduledOn: event.target.value || null }).catch(() => undefined)} /></label>
+          <label className="metric-field"><span>Time of day</span><select className="metric-input" value={session.slot ?? ""} onChange={(event) => void updateSession(session.id, { slot: (event.target.value || null) as SessionSlot | null }).catch(() => undefined)}><option value="">Any time</option><option value="am">Morning (AM)</option><option value="pm">Afternoon (PM)</option></select></label>
+          {matchDay && <span className="md-label is-large" title={`${matchDay.label}${matchDay.other ? ` · ${matchDay.other}` : ""} — ${matchTitle(matchDay.match)}`}>{matchDay.label}</span>}
           <ul className="builder-stats" aria-label="Summary">
             <li><strong>{summary.exercises}</strong> {summary.exercises === 1 ? "exercise" : "exercises"}</li>
             <li><strong>{summary.sets}</strong> {summary.sets === 1 ? "set" : "sets"}</li>
@@ -74,8 +90,9 @@ export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
           ? <><Tag tone="sage">Published</Tag><Button variant="ghost" size="sm" onClick={() => void updateSession(session.id, { status: "draft" }).catch(() => undefined)}><Undo2 size={15} />Back to draft</Button></>
           : <Button size="sm" onClick={() => void updateSession(session.id, { status: "published" }).catch(() => undefined)}><Send size={15} />Publish to the team</Button>}
         {confirmDelete
-          ? <><Button variant="danger" size="sm" onClick={() => { router.push("/plan"); void deleteSession(session.id).catch(() => undefined); }}>Delete the session</Button><Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancel</Button></>
+          ? <><Button variant="danger" size="sm" onClick={() => { onDeleted(); void deleteSession(session.id).catch(() => undefined); }}>Delete the session</Button><Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancel</Button></>
           : <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} aria-label="Delete the session"><Trash2 size={16} /></Button>}
+        {onClose && <Button variant="ghost" size="sm" className="w-9 px-0" onClick={onClose} aria-label="Close the session"><X size={17} /></Button>}
       </div>
     </header>
 
@@ -125,7 +142,7 @@ export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
         setPicking(null);
       }}
     />
-  </div></AppShell>;
+  </>;
 }
 
 function preferredModality(kind: SectionKind) {

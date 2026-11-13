@@ -1,9 +1,10 @@
 "use client";
 
-import { Flag } from "lucide-react";
+import { Flag, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { monthSpans, periodColumns, seasonWeeks, weekIndex, type Period, type PeriodLevel, type Season, type WeekNote } from "@/lib/season";
-import type { TrainingSession } from "@/lib/types";
+import { isCongestedWeek, matchTitle } from "@/lib/match-days";
+import type { Match, TrainingSession } from "@/lib/types";
 import { cn, countLabel } from "@/lib/utils";
 
 export type TimelineSelection = { type: "period"; id: string } | { type: "week"; index: number } | null;
@@ -14,17 +15,19 @@ const MAX_DOTS = 4;
 /**
  * The year as a grid of weeks, Ballou-style: months on top, blocks (with their
  * velocity emphasis) over phases, the throughline running under everything,
- * and the sessions of each week at the bottom. Drag across empty weeks in a
+ * the sessions of each week, and the matches — with congested weeks marked —
+ * at the bottom. Drag across empty weeks in a
  * lane to lay out a new phase or block; click a bar or a week to open it.
  *
  * Mouse drags, a finger taps; keyboard users get the “New phase” / “New block”
  * buttons above the grid, and every bar and week is a button.
  */
-export function SeasonTimeline({ season, periods, weekNotes, sessions, today, selection, onSelect, onCreate }: {
+export function SeasonTimeline({ season, periods, weekNotes, sessions, matches, today, selection, onSelect, onCreate }: {
   season: Season;
   periods: readonly Period[];
   weekNotes: readonly WeekNote[];
   sessions: readonly TrainingSession[];
+  matches: readonly Match[];
   today: string | null;
   selection: TimelineSelection;
   onSelect(selection: TimelineSelection): void;
@@ -74,6 +77,11 @@ export function SeasonTimeline({ season, periods, weekNotes, sessions, today, se
   for (const session of sessions) {
     const index = session.scheduledOn ? weekIndex(season, session.scheduledOn) : null;
     if (index !== null) sessionsByWeek.set(index, [...(sessionsByWeek.get(index) ?? []), session]);
+  }
+  const matchesByWeek = new Map<number, Match[]>();
+  for (const match of matches) {
+    const index = weekIndex(season, match.playedOn);
+    if (index !== null) matchesByWeek.set(index, [...(matchesByWeek.get(index) ?? []), match]);
   }
   const column = (index: number) => index + 2;
 
@@ -154,7 +162,28 @@ export function SeasonTimeline({ season, periods, weekNotes, sessions, today, se
         </button>;
       })}
 
-      {todayColumn !== null && <span className="year-today" style={{ gridRow: "2 / 7", gridColumn: column(todayColumn) }} aria-hidden="true" />}
+      {/* Matches, with the congested weeks marked so they show across the year */}
+      <span className="year-label" style={{ gridRow: 7, gridColumn: 1 }}>Matches</span>
+      {weeks.map((week) => {
+        const weekMatches = matchesByWeek.get(week.index) ?? [];
+        const congested = isCongestedWeek(week.start, matches);
+        const selected = selection?.type === "week" && selection.index === week.index;
+        if (!weekMatches.length) return <span key={week.index} className="year-matches is-none" style={{ gridRow: 7, gridColumn: column(week.index) }} aria-hidden="true" />;
+        const label = `Week ${week.isoWeek}: ${weekMatches.map(matchTitle).join(", ")}${congested ? " — congested" : ""}`;
+        return <button
+          key={week.index}
+          type="button"
+          className={cn("year-matches", congested && "is-congested", selected && "is-selected")}
+          style={{ gridRow: 7, gridColumn: column(week.index) }}
+          onClick={() => onSelect(selected ? null : { type: "week", index: week.index })}
+          aria-label={label}
+          title={label}
+        >
+          {weekMatches.map((match) => match.priority ? <Star key={match.id} size={9} className="year-match-star" aria-hidden="true" /> : <i key={match.id} className="year-match" aria-hidden="true" />)}
+        </button>;
+      })}
+
+      {todayColumn !== null && <span className="year-today" style={{ gridRow: "2 / 8", gridColumn: column(todayColumn) }} aria-hidden="true" />}
     </div>
   </div>;
 }

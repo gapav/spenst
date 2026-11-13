@@ -2,7 +2,7 @@
 
 import type { User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { demoAthletes, demoMeasurements, demoOvrRows as seededOvrRows, demoPeriods, demoResults, demoSeasons, demoSessions, demoTeams, demoTestDays, demoUser, demoWeekNotes } from "@/lib/demo-data";
+import { demoAthletes, demoMeasurements, demoOvrRows as seededOvrRows, demoPeriods, demoResults, demoSeasons, demoMatches, demoSessions, demoTeams, demoTestDays, demoUser, demoWeekNotes } from "@/lib/demo-data";
 import { BUILTIN_EXERCISES } from "@/lib/exercise-library";
 import { cleanBatteryTests, DEFAULT_BATTERY_ID, type TestBattery } from "@/lib/power-profile";
 import { mergeOvrRows, OVR_BUCKET, parseSummary, storageFileName, XLSX_TYPE, type ImportStatus, type ImportSummary, type ImportWrites, type OvrMapping, type OvrRow, type TeamOvrMapping, type TestImport } from "@/lib/ovr-import";
@@ -11,8 +11,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cleanNewAthlete, type NewAthleteInput } from "@/lib/roster";
 import { cleanTeamName } from "@/lib/teams";
 import { overlapsOnLevel, periodKindLabels, type Period, type Season, type WeekNote } from "@/lib/season";
+import { cloneContent, type Placement } from "@/lib/planning";
 import { emptyContent, parseSessionContent, type Exercise, type MetricKey, type Modality, type SessionContent } from "@/lib/training";
-import type { Athlete, HandballPosition, Measurement, Population, Profile, ResultInput, SaveState, SessionStatus, Sex, Side, Team, TeamRole, TestDay, TestResult, TrainingSession, TrainingSessionPatch } from "@/lib/types";
+import type { Athlete, HandballPosition, Match, Measurement, Population, Profile, ResultInput, SaveState, SessionStatus, Sex, Side, Team, TeamRole, TestDay, TestResult, TrainingSession, TrainingSessionPatch, SessionSlot } from "@/lib/types";
 import type { ZoneId } from "@/lib/vbt";
 import { initials, makeUuid } from "@/lib/utils";
 
@@ -37,7 +38,8 @@ type DbExercise = { id: string; team_id: string; name: string; modality: Modalit
 type DbSeason = { id: string; team_id: string; title: string; starts_on: string; weeks: number; throughline: string };
 type DbPeriod = { id: string; season_id: string; level: Period["level"]; kind: Period["kind"]; title: string; starts_on: string; weeks: number; emphasis: ZoneId | null; focus: string; notes: string };
 type DbWeekNote = { season_id: string; week_start: string; label: string };
-type DbSession = { id: string; team_id: string; scheduled_on: string | null; title: string; status: SessionStatus; content: unknown };
+type DbSession = { id: string; team_id: string; scheduled_on: string | null; slot: SessionSlot | null; title: string; status: SessionStatus; content: unknown };
+type DbMatch = { id: string; team_id: string; played_on: string; kick_off: string | null; opponent: string; home: boolean; kind: Match["kind"]; priority: boolean; note: string };
 type DbTestImport = { id: string; team_id: string; file_name: string; file_size: number | string; file_sha256: string | null; file_path: string; status: ImportStatus; summary: unknown; created_at: string };
 type DbBattery = { id: string; team_id: string; name: string; description: string; test_keys: string[] };
 type DbOvrMapping = { team_id: string; measure_key: string; test_key: string | null; side: Side | null; first_leg: Side | null };
@@ -67,7 +69,15 @@ const mapSeason = (row: DbSeason): Season => ({ id: row.id, teamId: row.team_id,
 const mapPeriod = (row: DbPeriod): Period => ({ id: row.id, seasonId: row.season_id, level: row.level, kind: row.kind, title: row.title, startsOn: row.starts_on, weeks: row.weeks, emphasis: row.emphasis, focus: row.focus, notes: row.notes });
 const periodRow = (period: Period) => ({ id: period.id, season_id: period.seasonId, level: period.level, kind: period.kind, title: period.title, starts_on: period.startsOn, weeks: period.weeks, emphasis: period.emphasis, focus: period.focus, notes: period.notes });
 // Content is JSON from the database: checked, never trusted.
-const mapSession = (row: DbSession): TrainingSession => ({ id: row.id, teamId: row.team_id, scheduledOn: row.scheduled_on, title: row.title, status: row.status, content: parseSessionContent(row.content) });
+const mapSession = (row: DbSession): TrainingSession => ({ id: row.id, teamId: row.team_id, scheduledOn: row.scheduled_on, slot: row.slot ?? null, title: row.title, status: row.status, content: parseSessionContent(row.content) });
+const sessionRow = (session: TrainingSession, updatedBy: string) => ({ id: session.id, team_id: session.teamId, scheduled_on: session.scheduledOn, slot: session.slot, title: session.title, status: session.status, content: session.content, updated_by: updatedBy });
+// Postgres hands a time back as `18:00:00`; the app keeps `18:00`.
+const mapMatch = (row: DbMatch): Match => ({ id: row.id, teamId: row.team_id, playedOn: row.played_on, kickOff: row.kick_off ? row.kick_off.slice(0, 5) : null, opponent: row.opponent, home: row.home, kind: row.kind, priority: row.priority, note: row.note });
+const matchPatchRow = (patch: Partial<Omit<Match, "id" | "teamId">>) => ({
+  ...(patch.playedOn !== undefined ? { played_on: patch.playedOn } : {}), ...(patch.kickOff !== undefined ? { kick_off: patch.kickOff } : {}),
+  ...(patch.opponent !== undefined ? { opponent: patch.opponent } : {}), ...(patch.home !== undefined ? { home: patch.home } : {}),
+  ...(patch.kind !== undefined ? { kind: patch.kind } : {}), ...(patch.priority !== undefined ? { priority: patch.priority } : {}), ...(patch.note !== undefined ? { note: patch.note } : {}),
+});
 const mapTestImport = (row: DbTestImport): TestImport => ({ id: row.id, teamId: row.team_id, fileName: row.file_name, fileSize: Number(row.file_size), fileSha256: row.file_sha256, filePath: row.file_path, status: row.status, summary: parseSummary(row.summary), createdAt: row.created_at });
 const mapOvrMapping = (row: DbOvrMapping): TeamOvrMapping => ({ teamId: row.team_id, key: row.measure_key, testKey: (row.test_key as TeamOvrMapping["testKey"]) ?? null, side: row.side, firstLeg: row.first_leg ?? null });
 const dbNumber = (value: DbNumber) => value === null || value === "" ? null : Number(value);
@@ -161,7 +171,24 @@ interface SpenstContextValue {
   /** An empty label removes the note. */
   setWeekNote(seasonId: string, weekStart: string, label: string): Promise<void>;
   /** Starts a session on the current team and hands back its id. */
-  createSession(input: { title: string; scheduledOn: string | null }): Promise<string>;
+  createSession(input: { title: string; scheduledOn: string | null; slot?: SessionSlot | null }): Promise<string>;
+  /**
+   * Independent copies (decision 24): each source to its placement, as a
+   * draft with every content id new, in one insert. Hands back the new ids,
+   * in the order given.
+   */
+  copySessions(items: { source: TrainingSession; placement: Placement }[]): Promise<string[]>;
+  /** Moves sessions to new days and slots, all or none (`move_sessions`). */
+  moveSessions(moves: { id: string; scheduledOn: string | null; slot: SessionSlot | null }[]): Promise<void>;
+  /** Deletes many at once; hands back what was deleted, for an undo. */
+  deleteSessions(ids: string[]): Promise<TrainingSession[]>;
+  /** Puts deleted sessions back as they were — the undo of `deleteSessions`. */
+  restoreSessions(sessions: TrainingSession[]): Promise<void>;
+  matches: Match[];
+  /** A match on the current team; hands back its id. */
+  createMatch(input: Omit<Match, "id" | "teamId">): Promise<string>;
+  updateMatch(id: string, patch: Partial<Omit<Match, "id" | "teamId">>): Promise<void>;
+  deleteMatch(id: string): Promise<void>;
   updateSession(id: string, patch: TrainingSessionPatch): Promise<void>;
   /** Publish or unpublish many at once — a whole block’s sessions. */
   setSessionsStatus(ids: string[], status: SessionStatus): Promise<void>;
@@ -219,6 +246,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [periods, setPeriods] = useState<Period[]>(() => isSupabaseConfigured ? [] : structuredClone(demoPeriods));
   const [weekNotes, setWeekNotes] = useState<WeekNote[]>(() => isSupabaseConfigured ? [] : structuredClone(demoWeekNotes));
   const [sessions, setSessions] = useState<TrainingSession[]>(() => isSupabaseConfigured ? [] : structuredClone(demoSessions));
+  const [matches, setMatches] = useState<Match[]>(() => isSupabaseConfigured ? [] : structuredClone(demoMatches));
   const [testImports, setTestImports] = useState<TestImport[]>([]);
   const [ovrMappings, setOvrMappings] = useState<TeamOvrMapping[]>([]);
   const [customBatteries, setCustomBatteries] = useState<TestBattery[]>([]);
@@ -249,7 +277,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /** Refetches everything the signed-in coach can see, in one parallel batch. */
   const loadPrivateData = useCallback(async (authUser: User) => {
     if (!supabase) return;
-    const [{ data: membershipRows }, { data: athleteRows }, { data: measurementRows }, { data: dayRows }, { data: resultRows }, { data: profileRow }, { data: exerciseRows }, { data: seasonRows }, { data: periodRows }, { data: weekNoteRows }, { data: sessionRows }, { data: importRows }, { data: mappingRows }, { data: batteryRows }] = await Promise.all([
+    const [{ data: membershipRows }, { data: athleteRows }, { data: measurementRows }, { data: dayRows }, { data: resultRows }, { data: profileRow }, { data: exerciseRows }, { data: seasonRows }, { data: periodRows }, { data: weekNoteRows }, { data: sessionRows }, { data: importRows }, { data: mappingRows }, { data: batteryRows }, { data: matchRows }] = await Promise.all([
       supabase.from("team_memberships").select("team_id, profile_id, role, teams(id, name, population, logo_url, battery_key), profiles(id, email, full_name)"),
       supabase.from("athletes").select("id, display_name, birth_month, sex, position, measurement_consent, team_athletes(team_id)").order("display_name"),
       supabase.from("athlete_measurements").select("id, athlete_id, measured_on, height_cm, sitting_height_cm, body_mass_kg"),
@@ -260,10 +288,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabase.from("seasons").select("id, team_id, title, starts_on, weeks, throughline").order("starts_on", { ascending: false }),
       supabase.from("periods").select("id, season_id, level, kind, title, starts_on, weeks, emphasis, focus, notes"),
       supabase.from("week_notes").select("season_id, week_start, label"),
-      supabase.from("sessions").select("id, team_id, scheduled_on, title, status, content"),
+      supabase.from("sessions").select("id, team_id, scheduled_on, slot, title, status, content"),
       supabase.from("test_imports").select("id, team_id, file_name, file_size, file_sha256, file_path, status, summary, created_at").order("created_at", { ascending: false }),
       supabase.from("ovr_mappings").select("team_id, measure_key, test_key, side, first_leg"),
       supabase.from("test_batteries").select("id, team_id, name, description, test_keys").order("name"),
+      supabase.from("matches").select("id, team_id, played_on, kick_off, opponent, home, kind, priority, note").order("played_on"),
     ]);
     if (profileRow) setUser({ id: profileRow.id, email: profileRow.email, fullName: profileRow.full_name, initials: initials(profileRow.full_name), color: SELF_COLOR, isGlobalAdmin: profileRow.is_global_admin });
     if (membershipRows) {
@@ -289,6 +318,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (periodRows) setPeriods((periodRows as unknown as DbPeriod[]).map(mapPeriod));
     if (weekNoteRows) setWeekNotes((weekNoteRows as unknown as DbWeekNote[]).map((row) => ({ seasonId: row.season_id, weekStart: row.week_start, label: row.label })));
     if (sessionRows) setSessions((sessionRows as unknown as DbSession[]).map(mapSession));
+    if (matchRows) setMatches((matchRows as unknown as DbMatch[]).map(mapMatch));
     if (importRows) setTestImports((importRows as unknown as DbTestImport[]).map(mapTestImport));
     if (batteryRows) setCustomBatteries((batteryRows as unknown as DbBattery[]).map((row) => ({ id: row.id, teamId: row.team_id, name: row.name, description: row.description, tests: cleanBatteryTests(row.test_keys) })));
     if (mappingRows) setOvrMappings((mappingRows as unknown as DbOvrMapping[]).map(mapOvrMapping));
@@ -344,7 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();
     setUser(supabase ? null : demoUser);
-    if (supabase) { setTeams([]); setAthletes([]); setMeasurements([]); setTestDays([]); setResults([]); setCustomExercises([]); setSeasons([]); setPeriods([]); setWeekNotes([]); setSessions([]); setTestImports([]); setOvrMappings([]); setCustomBatteries([]); }
+    if (supabase) { setTeams([]); setAthletes([]); setMeasurements([]); setTestDays([]); setResults([]); setCustomExercises([]); setSeasons([]); setPeriods([]); setWeekNotes([]); setSessions([]); setMatches([]); setTestImports([]); setOvrMappings([]); setCustomBatteries([]); }
   }, [supabase]);
 
   // Not optimistic: `create_team` mints the id and the admin membership in one
@@ -547,13 +577,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [persist, supabase, weekNotes]);
 
-  const createSession = useCallback(async (input: { title: string; scheduledOn: string | null }) => {
+  const createSession = useCallback(async (input: { title: string; scheduledOn: string | null; slot?: SessionSlot | null }) => {
     if (!user || !currentTeam) throw new Error("Choose a team first");
-    const session: TrainingSession = { id: makeUuid(), teamId: currentTeam.id, scheduledOn: input.scheduledOn, title: input.title.trim() || "Session", status: "draft", content: emptyContent() };
+    const session: TrainingSession = { id: makeUuid(), teamId: currentTeam.id, scheduledOn: input.scheduledOn, slot: input.slot ?? null, title: input.title.trim() || "Session", status: "draft", content: emptyContent() };
     sessionsRef.current = [...sessionsRef.current, session];
     setSessions(sessionsRef.current);
     try {
-      await persist(supabase && (() => supabase.from("sessions").insert({ id: session.id, team_id: session.teamId, scheduled_on: session.scheduledOn, title: session.title, status: session.status, content: session.content, updated_by: user.id })));
+      await persist(supabase && (() => supabase.from("sessions").insert(sessionRow(session, user.id))));
     } catch (error) {
       setSessions((current) => current.filter((candidate) => candidate.id !== session.id));
       throw error;
@@ -570,11 +600,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await persist(supabase && (() => supabase.from("sessions").update({
         ...(patch.title !== undefined ? { title: patch.title } : {}),
         ...(patch.scheduledOn !== undefined ? { scheduled_on: patch.scheduledOn } : {}),
+        ...(patch.slot !== undefined ? { slot: patch.slot } : {}),
         ...(patch.status !== undefined ? { status: patch.status } : {}),
         updated_by: user.id,
       }).eq("id", id)));
     } catch (error) {
-      setSessions((current) => current.map((session) => session.id === id ? { ...session, title: previous.title, scheduledOn: previous.scheduledOn, status: previous.status } : session));
+      setSessions((current) => current.map((session) => session.id === id ? { ...session, title: previous.title, scheduledOn: previous.scheduledOn, slot: previous.slot, status: previous.status } : session));
       throw error;
     }
   }, [persist, supabase, user]);
@@ -619,6 +650,113 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   }, [persist, supabase]);
+
+  const copySessions = useCallback(async (items: { source: TrainingSession; placement: Placement }[]) => {
+    if (!user) throw new Error("Sign in to plan sessions");
+    if (!items.length) return [];
+    const copies: TrainingSession[] = items.map(({ source, placement }) => ({
+      id: makeUuid(), teamId: source.teamId, scheduledOn: placement.scheduledOn, slot: placement.slot, title: source.title, status: "draft", content: cloneContent(source.content, makeUuid),
+    }));
+    const ids = new Set(copies.map((copy) => copy.id));
+    sessionsRef.current = [...sessionsRef.current, ...copies];
+    setSessions(sessionsRef.current);
+    try {
+      // One insert is one statement: every copy lands, or none does.
+      await persist(supabase && (() => supabase.from("sessions").insert(copies.map((copy) => sessionRow(copy, user.id)))));
+    } catch (error) {
+      setSessions((current) => current.filter((session) => !ids.has(session.id)));
+      throw error;
+    }
+    return copies.map((copy) => copy.id);
+  }, [persist, supabase, user]);
+
+  const moveSessions = useCallback(async (moves: { id: string; scheduledOn: string | null; slot: SessionSlot | null }[]) => {
+    if (!user) throw new Error("Sign in to plan sessions");
+    if (!moves.length) return;
+    const target = new Map(moves.map((move) => [move.id, move]));
+    const previous = new Map(sessionsRef.current.filter((session) => target.has(session.id)).map((session) => [session.id, { scheduledOn: session.scheduledOn, slot: session.slot }]));
+    const apply = (lookup: Map<string, { scheduledOn: string | null; slot: SessionSlot | null }>) => {
+      sessionsRef.current = sessionsRef.current.map((session) => { const next = lookup.get(session.id); return next ? { ...session, scheduledOn: next.scheduledOn, slot: next.slot } : session; });
+      setSessions(sessionsRef.current);
+    };
+    apply(target);
+    try {
+      await persist(supabase && (() => supabase.rpc("move_sessions", { moves: moves.map((move) => ({ id: move.id, scheduled_on: move.scheduledOn, slot: move.slot })) })));
+    } catch (error) {
+      apply(previous);
+      throw error;
+    }
+  }, [persist, supabase, user]);
+
+  const deleteSessions = useCallback(async (ids: string[]) => {
+    const doomed = new Set(ids);
+    const removed = sessionsRef.current.filter((session) => doomed.has(session.id));
+    if (!removed.length) return [];
+    sessionsRef.current = sessionsRef.current.filter((session) => !doomed.has(session.id));
+    setSessions(sessionsRef.current);
+    try {
+      await persist(supabase && (() => supabase.from("sessions").delete().in("id", ids)));
+    } catch (error) {
+      sessionsRef.current = [...sessionsRef.current, ...removed];
+      setSessions(sessionsRef.current);
+      throw error;
+    }
+    return removed;
+  }, [persist, supabase]);
+
+  const restoreSessions = useCallback(async (restored: TrainingSession[]) => {
+    if (!user) throw new Error("Sign in to plan sessions");
+    if (!restored.length) return;
+    const ids = new Set(restored.map((session) => session.id));
+    sessionsRef.current = [...sessionsRef.current.filter((session) => !ids.has(session.id)), ...restored];
+    setSessions(sessionsRef.current);
+    try {
+      await persist(supabase && (() => supabase.from("sessions").insert(restored.map((session) => sessionRow(session, user.id)))));
+    } catch (error) {
+      sessionsRef.current = sessionsRef.current.filter((session) => !ids.has(session.id));
+      setSessions(sessionsRef.current);
+      throw error;
+    }
+  }, [persist, supabase, user]);
+
+  const createMatch = useCallback(async (input: Omit<Match, "id" | "teamId">) => {
+    if (!user || !currentTeam) throw new Error("Choose a team first");
+    const match: Match = { ...input, id: makeUuid(), teamId: currentTeam.id, opponent: input.opponent.trim(), note: input.note.trim() };
+    if (!match.opponent) throw new Error("Name the opponent.");
+    setMatches((current) => [...current, match]);
+    try {
+      await persist(supabase && (() => supabase.from("matches").insert({ id: match.id, team_id: match.teamId, played_on: match.playedOn, kick_off: match.kickOff, opponent: match.opponent, home: match.home, kind: match.kind, priority: match.priority, note: match.note, created_by: user.id })));
+    } catch (error) {
+      setMatches((current) => current.filter((entry) => entry.id !== match.id));
+      throw error;
+    }
+    return match.id;
+  }, [currentTeam, persist, supabase, user]);
+
+  const updateMatch = useCallback(async (id: string, patch: Partial<Omit<Match, "id" | "teamId">>) => {
+    const previous = matches.find((match) => match.id === id);
+    if (!previous) return;
+    const next = { ...patch, ...(patch.opponent !== undefined ? { opponent: patch.opponent.trim() } : {}), ...(patch.note !== undefined ? { note: patch.note.trim() } : {}) };
+    if (next.opponent === "") throw new Error("Name the opponent.");
+    setMatches((current) => current.map((match) => match.id === id ? { ...match, ...next } : match));
+    try {
+      await persist(supabase && (() => supabase.from("matches").update(matchPatchRow(next)).eq("id", id)));
+    } catch (error) {
+      setMatches((current) => current.map((match) => match.id === id ? previous : match));
+      throw error;
+    }
+  }, [matches, persist, supabase]);
+
+  const deleteMatch = useCallback(async (id: string) => {
+    const previous = matches.find((match) => match.id === id);
+    setMatches((current) => current.filter((match) => match.id !== id));
+    try {
+      await persist(supabase && (() => supabase.from("matches").delete().eq("id", id)));
+    } catch (error) {
+      if (previous) setMatches((current) => [...current, previous]);
+      throw error;
+    }
+  }, [matches, persist, supabase]);
 
   const setTeamBattery = useCallback(async (teamId: string, batteryId: string) => {
     const previous = teams.find((team) => team.id === teamId)?.batteryId;
@@ -797,12 +935,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     user, authLoading, workspaceLoaded, isDemoMode: !supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed,
     setSidebarCollapsed, setCurrentTeamId: selectTeam, clearNotice: () => setNotice(null), signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
-    createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession,
+    createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession, copySessions, moveSessions, deleteSessions, restoreSessions, matches, createMatch, updateMatch, deleteMatch,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,
     customBatteries, setTeamBattery, saveBattery, deleteBattery,
   }), [user, authLoading, workspaceLoaded, supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed, selectTeam, signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
-    createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession,
+    createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession, copySessions, moveSessions, deleteSessions, restoreSessions, matches, createMatch, updateMatch, deleteMatch,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,
     customBatteries, setTeamBattery, saveBattery, deleteBattery]);
 
