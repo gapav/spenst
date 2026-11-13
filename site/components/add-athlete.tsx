@@ -88,7 +88,7 @@ export function AddAthleteButton({ variant = "secondary" }: { variant?: "primary
  * “Edit” on an athlete’s profile, for an admin of one of their teams: change
  * the details, take them off the current team, or delete them for good.
  */
-export function EditAthleteButton({ athlete }: { athlete: Athlete }) {
+export function EditAthleteButton({ athlete, compact = false }: { athlete: Athlete; compact?: boolean }) {
   const { teams, currentTeam, updateAthlete, removeAthleteFromTeam, deleteAthlete } = useSpenst();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -116,7 +116,9 @@ export function EditAthleteButton({ athlete }: { athlete: Athlete }) {
   }
 
   return <>
-    <Button variant="secondary" onClick={start}><Pencil size={16} />Edit</Button>
+    {compact
+      ? <Button variant="ghost" size="sm" onClick={start} aria-label={`Edit ${athlete.displayName}`} className="h-10 w-10 shrink-0 px-0"><Pencil size={16} /></Button>
+      : <Button variant="secondary" onClick={start}><Pencil size={16} />Edit</Button>}
     <Modal open={open} title={`Edit ${athlete.displayName}`} onClose={close}>
       <form className="grid gap-4" onSubmit={(event) => {
         event.preventDefault();
