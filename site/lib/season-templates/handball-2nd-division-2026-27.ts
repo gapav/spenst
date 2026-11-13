@@ -1,11 +1,12 @@
 import type { Period, Season, WeekNote } from "../season";
+import type { Match } from "../types";
 
 /**
  * Season 2026/27 for Test Team (Case H of the S&C Learning Path, decision 20):
  * an amateur men’s 2. divisjon handball season, built on Stord’s fixture list
  * (group 3, NHF tournament 446514, read 13 Nov 2026). Issue #19.
  *
- * Typed data only — phases, week notes and the throughline. Blocks and
+ * Typed data only — phases, matches, week notes and the throughline. Blocks and
  * sessions are the maintainer’s. `scripts/season-template-sql.mts` turns this
  * into `supabase/data/2026-27-test-team-handball-2nd-division.sql`, which the
  * maintainer runs once with `npm run db:sql` (decision 23).
@@ -15,16 +16,29 @@ import type { Period, Season, WeekNote } from "../season";
 
 export type TemplatePeriod = Omit<Period, "id" | "seasonId">;
 export type TemplateWeekNote = Omit<WeekNote, "seasonId">;
+export type TemplateMatch = Omit<Match, "id" | "teamId">;
 
 export interface SeasonTemplate {
   /** The team and season the data targets; the SQL finds them by these. */
   teamName: string;
   season: Pick<Season, "title" | "startsOn" | "weeks" | "throughline">;
   phases: TemplatePeriod[];
+  /** The fixture list, on its days (decision 24): MD labels and congested weeks come from these. */
+  matches: TemplateMatch[];
   weekNotes: TemplateWeekNote[];
+  /**
+   * Notes an earlier version of the script wrote that are matches now. The
+   * script deletes each one only while its label is still exactly this, so a
+   * note the coach has changed since stays.
+   */
+  retiredWeekNotes: TemplateWeekNote[];
 }
 
 const lines = (...points: string[]) => points.join("\n");
+
+/** A league match; `home` is H or A as in the fixture list. */
+const league = (playedOn: string, kickOff: string, where: "H" | "A", opponent: string, extra: Partial<TemplateMatch> = {}): TemplateMatch =>
+  ({ playedOn, kickOff, opponent, home: where === "H", kind: "league", priority: false, note: "", ...extra });
 
 const phase = (kind: Period["kind"], title: string, startsOn: string, weeks: number, focus: string, notes: string): TemplatePeriod => ({
   level: "phase",
@@ -225,10 +239,56 @@ export const handball2ndDivision202627: SeasonTemplate = {
       ),
     ),
   ],
+  matches: [
+    league("2026-08-30", "16:00", "H", "BSI", { note: "League start" }),
+    league("2026-09-19", "16:00", "A", "Bjørnar"),
+    league("2026-09-26", "14:00", "H", "Fyllingen"),
+    league("2026-10-17", "16:00", "H", "Ros"),
+    league("2026-10-31", "15:00", "A", "Haslum IL", { note: "Away weekend, with long travel" }),
+    league("2026-11-01", "12:00", "A", "Nordstrand 2", { note: "Away weekend, with long travel" }),
+    league("2026-11-18", "18:00", "H", "Gneist"),
+    league("2026-11-29", "16:00", "H", "Bækkelaget"),
+    league("2026-12-06", "15:00", "A", "Bergensdalen"),
+    league("2026-12-13", "13:00", "A", "Viking TIF 2"),
+    league("2026-12-19", "16:00", "H", "Åsane 2", { note: "Last match before Christmas" }),
+    league("2027-01-16", "16:30", "A", "Fyllingen", { note: "First match after the break" }),
+    league("2027-01-30", "14:30", "A", "BSI"),
+    league("2027-02-07", "14:00", "H", "Haslum IL"),
+    league("2027-02-13", "16:00", "A", "Ros", { note: "Away weekend" }),
+    league("2027-02-14", "14:00", "A", "Bækkelaget", { note: "Away weekend" }),
+    league("2027-02-21", "16:00", "H", "Viking TIF 2"),
+    league("2027-03-03", "19:00", "A", "Gneist"),
+    league("2027-03-07", "14:00", "H", "Nordstrand 2"),
+    league("2027-03-20", "14:00", "A", "Åsane 2", { note: "Decide: contender for the group?" }),
+    league("2027-04-03", "16:00", "H", "Bjørnar"),
+    league("2027-04-11", "16:00", "H", "Bergensdalen", { priority: true, note: "Last round — can decide the group" }),
+  ],
+  // What is not a match: the matches are on their days now, and a week
+  // without one shows none, so “No match” needs no note.
   weekNotes: [
     { weekStart: "2026-08-03", label: "Preseason starts · test day" },
     { weekStart: "2026-08-17", label: "Last preseason week · taper" },
-    { weekStart: "2026-08-24", label: "Sun H BSI 16:00 · league start" },
+    { weekStart: "2026-08-24", label: "League start" },
+    { weekStart: "2026-10-26", label: "Away weekend" },
+    { weekStart: "2026-12-14", label: "Last match before Christmas" },
+    { weekStart: "2026-12-21", label: "Christmas · no team practice" },
+    { weekStart: "2026-12-28", label: "Christmas · no team practice" },
+    { weekStart: "2027-01-04", label: "Team practice restarts · retest" },
+    { weekStart: "2027-01-11", label: "Restart" },
+    { weekStart: "2027-02-08", label: "Away weekend" },
+    { weekStart: "2027-03-08", label: "Last loading week" },
+    { weekStart: "2027-03-15", label: "Decide: contender?" },
+    { weekStart: "2027-03-22", label: "Easter" },
+    { weekStart: "2027-04-05", label: "Last round" },
+    { weekStart: "2027-04-12", label: "Taper if group winner · end-of-season tests" },
+    { weekStart: "2027-04-19", label: "Qualification if group winner (dates TBC)" },
+    { weekStart: "2027-04-26", label: "Qualification if group winner (dates TBC)" },
+    { weekStart: "2027-05-03", label: "Transition starts" },
+    { weekStart: "2027-05-24", label: "Off-season development starts" },
+    { weekStart: "2027-07-05", label: "Summer holiday" },
+    { weekStart: "2027-07-26", label: "Return to running" },
+  ],
+  retiredWeekNotes: [
     { weekStart: "2026-08-31", label: "No match" },
     { weekStart: "2026-09-07", label: "No match" },
     { weekStart: "2026-09-14", label: "Sat A Bjørnar 16:00" },
@@ -237,36 +297,18 @@ export const handball2ndDivision202627: SeasonTemplate = {
     { weekStart: "2026-10-05", label: "No match" },
     { weekStart: "2026-10-12", label: "Sat H Ros 16:00" },
     { weekStart: "2026-10-19", label: "No match" },
-    { weekStart: "2026-10-26", label: "2 away: Sat Haslum IL 15:00 · Sun Nordstrand 2 12:00" },
     { weekStart: "2026-11-02", label: "No match" },
     { weekStart: "2026-11-09", label: "No match" },
     { weekStart: "2026-11-16", label: "Wed H Gneist 18:00" },
     { weekStart: "2026-11-23", label: "Sun H Bækkelaget 16:00" },
     { weekStart: "2026-11-30", label: "Sun A Bergensdalen 15:00" },
     { weekStart: "2026-12-07", label: "Sun A Viking TIF 2 13:00" },
-    { weekStart: "2026-12-14", label: "Sat H Åsane 2 16:00 · last match before Christmas" },
-    { weekStart: "2026-12-21", label: "Christmas · no team practice" },
-    { weekStart: "2026-12-28", label: "Christmas · no team practice" },
-    { weekStart: "2027-01-04", label: "Team practice restarts · retest" },
-    { weekStart: "2027-01-11", label: "Sat A Fyllingen 16:30 · restart" },
     { weekStart: "2027-01-18", label: "No match" },
     { weekStart: "2027-01-25", label: "Sat A BSI 14:30" },
     { weekStart: "2027-02-01", label: "Sun H Haslum IL 14:00" },
-    { weekStart: "2027-02-08", label: "2 away: Sat Ros 16:00 · Sun Bækkelaget 14:00" },
     { weekStart: "2027-02-15", label: "Sun H Viking TIF 2 16:00" },
     { weekStart: "2027-02-22", label: "No match" },
     { weekStart: "2027-03-01", label: "2 matches: Wed A Gneist 19:00 · Sun H Nordstrand 2 14:00" },
-    { weekStart: "2027-03-08", label: "No match · last loading week" },
-    { weekStart: "2027-03-15", label: "Sat A Åsane 2 14:00 · decide: contender?" },
-    { weekStart: "2027-03-22", label: "Easter · no match" },
     { weekStart: "2027-03-29", label: "Sat H Bjørnar 16:00" },
-    { weekStart: "2027-04-05", label: "Sun H Bergensdalen 16:00 · last round" },
-    { weekStart: "2027-04-12", label: "Taper if group winner · end-of-season tests" },
-    { weekStart: "2027-04-19", label: "Qualification if group winner (dates TBC)" },
-    { weekStart: "2027-04-26", label: "Qualification if group winner (dates TBC)" },
-    { weekStart: "2027-05-03", label: "Transition starts" },
-    { weekStart: "2027-05-24", label: "Off-season development starts" },
-    { weekStart: "2027-07-05", label: "Summer holiday" },
-    { weekStart: "2027-07-26", label: "Return to running" },
   ],
 };

@@ -29,6 +29,18 @@ function sqlDate(value: string): string {
   return `date '${value}'`;
 }
 
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function sqlTime(value: string | null): string {
+  if (value === null) return "null";
+  if (!TIME.test(value)) throw new Error(`Not a time: ${value}`);
+  return `time '${value}'`;
+}
+
+function sqlBoolean(value: boolean): string {
+  return value ? "true" : "false";
+}
+
 function sqlInteger(value: number): string {
   if (!Number.isInteger(value)) throw new Error(`Not an integer: ${value}`);
   return String(value);
@@ -42,7 +54,7 @@ function sqlNotes(notes: string, indent: string): string {
 }
 
 export function seasonTemplateSql(template: SeasonTemplate, fileName: string): string {
-  const { season, phases, weekNotes } = template;
+  const { season, phases, weekNotes, matches, retiredWeekNotes } = template;
   const team = sqlText(template.teamName);
   const title = sqlText(season.title);
   const startsOn = sqlDate(season.startsOn);
@@ -65,6 +77,11 @@ export function seasonTemplateSql(template: SeasonTemplate, fileName: string): s
   });
 
   const noteRows = weekNotes.map((note) => `    (target, ${sqlDate(note.weekStart)}, ${sqlText(note.label)})`);
+  const retiredRows = retiredWeekNotes.map((note) => `    (${sqlDate(note.weekStart)}, ${sqlText(note.label)})`);
+  const matchRows = matches.map((match) => {
+    if (match.playedOn < season.startsOn) throw new Error(`A match before the season: ${match.playedOn}`);
+    return `    (${sqlDate(match.playedOn)}, ${sqlTime(match.kickOff)}, ${sqlText(match.opponent)}, ${sqlBoolean(match.home)}, ${sqlText(match.kind)}::public.match_kind, ${sqlBoolean(match.priority)}, ${sqlText(match.note)})`;
+  });
 
   return `-- ${fileName}
 -- GENERATED FILE — do not edit by hand. The source is
@@ -72,8 +89,11 @@ export function seasonTemplateSql(template: SeasonTemplate, fileName: string): s
 --
 -- A data script, not a migration (decision 23; see README.md here).
 -- Targets team ${template.teamName}, season ${season.title} (${season.startsOn}, ${season.weeks} weeks).
--- It replaces that season's phases, upserts its week notes and sets its
--- throughline. Blocks, sessions and the notes on other weeks stay as they are.
+-- It replaces that season's phases, upserts its week notes, adds the team's
+-- matches that are not there yet (same date and opponent), deletes the week
+-- notes that are matches now while they still read exactly as this script
+-- once wrote them, and sets the throughline. Blocks, sessions, other matches
+-- and the notes on other weeks stay as they are.
 -- Running it twice gives the same result.
 --
 -- Run once, after a backup, from site/:
@@ -86,6 +106,8 @@ do $script$
 declare
   matches integer;
   target uuid;
+  target_team uuid;
+  author uuid;
 begin
   -- Team names are not unique, so the name must pick out exactly one team.
   select count(*) into matches from public.teams team where team.name = ${team};
@@ -113,6 +135,19 @@ begin
     raise exception 'Season % for team % does not start on % with % weeks.', ${title}, ${team}, ${startsOn}, ${weeks};
   end if;
 
+  select season.team_id into target_team from public.seasons season where season.id = target;
+
+  -- A match records who made it; the script makes them as the team's first admin.
+  select membership.profile_id into author
+  from public.team_memberships membership
+  where membership.team_id = target_team and membership.role = 'admin'
+  order by membership.joined_at
+  limit 1;
+
+  if author is null then
+    raise exception 'Team % has no admin to record the matches as.', ${team};
+  end if;
+
   -- Phases only: blocks and sessions are left alone.
   delete from public.periods where season_id = target and level = 'phase';
 
@@ -124,7 +159,24 @@ ${phaseRows.join(",\n")};
   values
 ${noteRows.join(",\n")}
   on conflict (season_id, week_start) do update set label = excluded.label;
-
+${retiredRows.length ? `
+  -- Notes that are matches now, only while they still say what this script once wrote.
+  delete from public.week_notes note
+  using (values
+${retiredRows.join(",\n")}
+  ) as retired (week_start, label)
+  where note.season_id = target and note.week_start = retired.week_start and note.label = retired.label;
+` : ""}${matchRows.length ? `
+  insert into public.matches (team_id, played_on, kick_off, opponent, home, kind, priority, note, created_by)
+  select target_team, fixture.played_on, fixture.kick_off, fixture.opponent, fixture.home, fixture.kind, fixture.priority, fixture.note, author
+  from (values
+${matchRows.join(",\n")}
+  ) as fixture (played_on, kick_off, opponent, home, kind, priority, note)
+  where not exists (
+    select 1 from public.matches existing
+    where existing.team_id = target_team and existing.played_on = fixture.played_on and existing.opponent = fixture.opponent
+  );
+` : ""}
   update public.seasons
   set throughline = ${sqlText(season.throughline)}
   where id = target;

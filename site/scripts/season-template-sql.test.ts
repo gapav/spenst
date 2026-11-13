@@ -9,6 +9,8 @@ const tiny: SeasonTemplate = {
   season: { title: "Season 2026/27", startsOn: "2026-08-03", weeks: 52, throughline: "Sprint 'n' jump · ≥ 90 %" },
   phases: [{ level: "phase", kind: "training", title: "It's “all”", startsOn: "2026-08-03", weeks: 52, emphasis: null, focus: "Focus's", notes: "One's\nTwo" }],
   weekNotes: [{ weekStart: "2026-08-03", label: "Don't · 100 %" }],
+  matches: [{ playedOn: "2026-08-30", kickOff: "16:00", opponent: "O'Neil IL", home: false, kind: "league", priority: true, note: "" }],
+  retiredWeekNotes: [{ weekStart: "2026-08-24", label: "Sun A O'Neil IL 16:00" }],
 };
 
 describe("sqlText", () => {
@@ -39,9 +41,23 @@ describe("seasonTemplateSql", () => {
     expect(sql).toContain("if target is null then\n    raise exception");
   });
 
-  it("deletes only that season’s phases, in one statement", () => {
+  it("deletes only that season’s phases, and only the retired notes that still read as written", () => {
     const deletes = sql.match(/^\s*delete .*$/gm) ?? [];
-    expect(deletes).toEqual(["  delete from public.periods where season_id = target and level = 'phase';"]);
+    expect(deletes).toEqual(["  delete from public.periods where season_id = target and level = 'phase';", "  delete from public.week_notes note"]);
+    expect(sql).toContain("(date '2026-08-24', 'Sun A O''Neil IL 16:00')");
+    expect(sql).toContain("where note.season_id = target and note.week_start = retired.week_start and note.label = retired.label;");
+  });
+
+  it("adds each match once, as the team's first admin, and leaves existing matches alone", () => {
+    expect(sql).toContain("(date '2026-08-30', time '16:00', 'O''Neil IL', false, 'league'::public.match_kind, true, '')");
+    expect(sql).toContain("where existing.team_id = target_team and existing.played_on = fixture.played_on and existing.opponent = fixture.opponent");
+    expect(sql).toContain("membership.role = 'admin'");
+    expect(sql).toContain("raise exception 'Team % has no admin to record the matches as.'");
+    expect(sql).not.toMatch(/delete from public\.matches/);
+  });
+
+  it("refuses a bad kick-off time", () => {
+    expect(() => seasonTemplateSql({ ...tiny, matches: [{ ...tiny.matches[0], kickOff: "25:00" }] }, "tiny.sql")).toThrow();
   });
 
   it("deletes before it inserts, upserts week notes and sets the throughline", () => {
