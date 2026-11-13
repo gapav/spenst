@@ -34,5 +34,5 @@ apply the migrations in `site/supabase/migrations/` by hand in the SQL editor,
 in order. `DEPLOYMENT.md` keeps the ledger of which are applied where.
 
 `docs/product.md` holds the product brief, `docs/decisions.md` the decisions
-and open questions, and `work/` the work, one file per change. `CLAUDE.md`
+and open questions, and the work is GitHub issues on the project board. `CLAUDE.md`
 describes the code.

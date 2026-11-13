@@ -22,7 +22,7 @@ description: Run Spenst on this machine — start and stop the dev server on por
   is saved”, the provider seeds generated squads from `lib/demo-data.ts`, and
   a reload starts over.
 - **`site/.env.local` with the Supabase pair:** the development project.
-  It exists since 13 November 2026 (work item 0003); with `.env.local` in
+  It exists since 13 November 2026 (#4); with `.env.local` in
   place, Next prints `Environments: .env.local` on start and the demo label
   is gone. It must never point at a production project.
 

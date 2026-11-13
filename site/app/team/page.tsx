@@ -4,7 +4,8 @@ import { ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSpenst } from "@/components/app-provider";
 import { AppShell } from "@/components/app-shell";
-import { AddAthleteButton } from "@/components/add-athlete";
+import Link from "next/link";
+import { AddAthleteButton, EditAthleteButton } from "@/components/add-athlete";
 import { BatterySettings } from "@/components/battery-settings";
 import { CreateTeamButton } from "@/components/create-team";
 import { LogoMark } from "@/components/logo";
@@ -41,8 +42,9 @@ export default function TeamPage() {
             <div className="spenst-context-note mb-5"><ShieldCheck size={19} /><p>Only the coaching staff can see the squad. We store names as “Firstname L.”, the birth month and — only with consent — height and weight.</p></div>
             <section className="spenst-card spenst-rows overflow-hidden">
               {squad.map((athlete) => <div key={athlete.id} className="athlete-row">
-                <div className="athlete-row-copy"><strong>{athlete.displayName}</strong><small>{[now && `${ageInYears(athlete.birthMonth, now)} years`, athlete.position && positionLabels[athlete.position]].filter(Boolean).join(" · ")}</small></div>
+                <div className="athlete-row-copy"><strong><Link href={`/athletes/${athlete.id}`} className="hover:underline">{athlete.displayName}</Link></strong><small>{[now && `${ageInYears(athlete.birthMonth, now)} years`, athlete.position && positionLabels[athlete.position]].filter(Boolean).join(" · ")}</small></div>
                 <Tag tone={athlete.measurementConsent ? "sage" : "neutral"}>{athlete.measurementConsent ? "Consent to measure" : "No measurements"}</Tag>
+                <EditAthleteButton athlete={athlete} compact />
               </div>)}
             </section>
           </>}

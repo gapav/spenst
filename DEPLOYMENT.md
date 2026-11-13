@@ -1,7 +1,7 @@
 # Deploying Spenst
 
 **Status, 13 November 2026: not deployed.** There is a development Supabase
-project (work item 0003) and no hosting. The code is on GitHub, in the private
+project (#4) and no hosting. The code is on GitHub, in the public
 repository `gapav/spenst`; the Supabase project is not connected to it.
 
 ## Environments
@@ -9,7 +9,7 @@ repository `gapav/spenst`; the Supabase project is not connected to it.
 | Environment | How | Data | State |
 |---|---|---|---|
 | Demo | `npm run dev` (port 3001) with no `site/.env.local` | Generated squads, nothing saved | Works |
-| Development | `site/.env.local` pointing at the dev Supabase project | Real | Set up 13 November 2026 (0003) |
+| Development | `site/.env.local` pointing at the dev Supabase project | Real | Set up 13 November 2026 (#4) |
 | Production | — | Real | Not set up |
 
 Only the Supabase URL and publishable key are configured, both
@@ -20,7 +20,7 @@ Only the Supabase URL and publishable key are configured, both
 The same shape as Grep (`~/code/plannr/DEPLOYMENT.md`), as separate projects
 that share nothing with Grep (decision 10): a private GitHub repository,
 Vercel for the app, Supabase for the database, auth and storage. The Claude
-connector (0001) needs a server runtime, which a Vercel route handler provides.
+connector (#2) needs a server runtime, which a Vercel route handler provides.
 
 ## Migration ledger
 
