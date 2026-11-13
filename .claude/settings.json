@@ -11,7 +11,15 @@
       "Bash(git diff)",
       "Bash(git diff *)",
       "Bash(git log *)",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(npm test)",
+      "Bash(git show *)",
+      "Bash(npm run db:bootstrap)",
+      "Bash(npm run db:status)",
+      "Bash(npm run db:push)",
+      "Bash(npm run db:backup)",
+      "Bash(npm run db:baseline *)",
+      "Bash(npm run db:sql *)"
     ],
     "deny": [
       "Bash(supabase db *)",
@@ -21,7 +29,12 @@
       "Bash(npx supabase *)",
       "Bash(psql *)",
       "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/raw/**)",
-      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/wiki/athlete/**)"
+      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/wiki/athlete/**)",
+      "Bash(supabase db *)",
+      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/wiki/athlete/**)",
+      "Bash(bash scripts/db.sh*)",
+      "Read(site/.env.db)",
+      "Read(./site/.env.db)"
     ]
   },
   "hooks": {

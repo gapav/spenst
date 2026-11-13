@@ -34,6 +34,7 @@ yarn-error.log*
 .env*
 # ...but the template documenting which variables are needed must ship.
 !.env.example
+!.env.db.example
 
 # vercel
 .vercel
@@ -41,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# The Supabase CLI's cache (npm run db:*)
+/supabase/.temp/

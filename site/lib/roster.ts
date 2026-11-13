@@ -1,3 +1,4 @@
+import type { HandballPosition, Sex } from "./types";
 import { ageClass } from "./maturity";
 
 /**
@@ -19,4 +20,35 @@ export function minimizeAthleteName(value: string) {
   const parts = value.trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
   if (parts.length < 2) return parts[0] ?? "";
   return `${parts[0]} ${parts.at(-1)?.charAt(0).toLocaleUpperCase("en-GB")}.`;
+}
+
+export interface NewAthleteInput {
+  name: string;
+  /** `YYYY-MM`, as `<input type="month">` gives it. */
+  birthMonth: string;
+  sex: Sex | null;
+  position: HandballPosition | null;
+  measurementConsent: boolean;
+}
+
+export type CleanNewAthlete = Omit<NewAthleteInput, "sex"> & { sex: Sex };
+
+/**
+ * A new athlete as the database will accept it — the name minimized, a whole
+ * birth month at or past the minimum age, a sex — or the first reason it
+ * can't be added.
+ */
+export function cleanNewAthlete(input: NewAthleteInput, asOf: Date): CleanNewAthlete | { problem: string } {
+  const name = minimizeAthleteName(input.name);
+  if (!name) return { problem: "Write the athlete’s name." };
+  if (name.length > 80) return { problem: "That name is too long." };
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.birthMonth)) return { problem: "Choose the birth month." };
+  if (!meetsMinimumAge(input.birthMonth, asOf)) return { problem: `Spenst is for athletes from the year they turn ${MIN_AGE_CLASS}.` };
+  if (!input.sex) return { problem: "Choose the athlete’s sex." };
+  return { ...input, name, sex: input.sex };
+}
+
+/** The latest birth month `cleanNewAthlete` accepts, for the month picker’s `max`. */
+export function latestBirthMonth(asOf: Date): string {
+  return `${asOf.getFullYear() - MIN_AGE_CLASS}-12`;
 }

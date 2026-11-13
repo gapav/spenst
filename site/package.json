@@ -3,12 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:bootstrap": "node scripts/build-bootstrap.mts",
+    "db:status": "bash scripts/db.sh status",
+    "db:push": "bash scripts/db.sh push",
+    "db:baseline": "bash scripts/db.sh baseline",
+    "db:backup": "bash scripts/db.sh backup",
+    "db:sql": "bash scripts/db.sh sql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

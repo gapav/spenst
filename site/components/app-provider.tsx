@@ -8,6 +8,8 @@ import { cleanBatteryTests, DEFAULT_BATTERY_ID, type TestBattery } from "@/lib/p
 import { mergeOvrRows, OVR_BUCKET, parseSummary, storageFileName, XLSX_TYPE, type ImportStatus, type ImportSummary, type ImportWrites, type OvrMapping, type OvrRow, type TeamOvrMapping, type TestImport } from "@/lib/ovr-import";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { cleanNewAthlete, type NewAthleteInput } from "@/lib/roster";
+import { cleanTeamName } from "@/lib/teams";
 import { overlapsOnLevel, periodKindLabels, type Period, type Season, type WeekNote } from "@/lib/season";
 import { emptyContent, parseSessionContent, type Exercise, type MetricKey, type Modality, type SessionContent } from "@/lib/training";
 import type { Athlete, HandballPosition, Measurement, Population, Profile, ResultInput, SaveState, SessionStatus, Sex, Side, Team, TeamRole, TestDay, TestResult, TrainingSession, TrainingSessionPatch } from "@/lib/types";
@@ -119,6 +121,25 @@ interface SpenstContextValue {
   clearNotice(): void;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /**
+   * A new team with the signed-in user as its admin, switched to and handed
+   * back by id. Global admins only, as `create_team` enforces.
+   */
+  createTeam(input: { name: string; population: Population }): Promise<string>;
+  /**
+   * Adds an athlete to the current team — the name minimized to “Firstname L.”
+   * — and hands back their id. Team admins only, as `add_athlete` enforces.
+   */
+  addAthlete(input: NewAthleteInput): Promise<string>;
+  /**
+   * Name, birth month, sex, position and consent. Withdrawing consent deletes
+   * the athlete's measurements (the database trigger does the same).
+   */
+  updateAthlete(id: string, input: NewAthleteInput): Promise<void>;
+  /** Takes the athlete off one team; their history stays with their other teams. */
+  removeAthleteFromTeam(id: string, teamId: string): Promise<void>;
+  /** Deletes the athlete and everything about them. Admins of all their teams only. */
+  deleteAthlete(id: string): Promise<void>;
   /** Starts a test day on the current team and hands back its id. */
   createTestDay(input: { title: string; heldOn: string }): Promise<string>;
   /** Writes one value; `value: null` clears it. */
@@ -325,6 +346,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(supabase ? null : demoUser);
     if (supabase) { setTeams([]); setAthletes([]); setMeasurements([]); setTestDays([]); setResults([]); setCustomExercises([]); setSeasons([]); setPeriods([]); setWeekNotes([]); setSessions([]); setTestImports([]); setOvrMappings([]); setCustomBatteries([]); }
   }, [supabase]);
+
+  // Not optimistic: `create_team` mints the id and the admin membership in one
+  // transaction, so the team joins the list once the server has it.
+  const createTeam = useCallback(async (input: { name: string; population: Population }) => {
+    if (!user) throw new Error("Sign in first.");
+    if (!user.isGlobalAdmin) throw new Error("Only the system administrator can create teams.");
+    const cleaned = cleanTeamName(input.name);
+    if ("problem" in cleaned) throw new Error(cleaned.problem);
+    let id = makeUuid();
+    await persist(supabase && (async () => {
+      const result = await supabase.rpc("create_team", { team_name: cleaned.name, team_population: input.population });
+      if (!result.error) id = result.data as string;
+      return result;
+    }));
+    const team: Team = { id, name: cleaned.name, shortName: shortTeamName(cleaned.name), population: input.population, batteryId: DEFAULT_BATTERY_ID, logoUrl: null, role: "admin", members: [{ ...user, color: SELF_COLOR, teamRole: "admin" }] };
+    setTeams((current) => [...current, team]);
+    selectTeam(id);
+    return id;
+  }, [persist, selectTeam, supabase, user]);
+
+  // Not optimistic, like createTeam: `add_athlete` mints the id and the roster
+  // row together, and the database has the last word on name and age.
+  const addAthlete = useCallback(async (input: NewAthleteInput) => {
+    if (!user || !currentTeam) throw new Error("Choose a team first.");
+    if (currentTeam.role !== "admin") throw new Error("Only a team admin can add athletes.");
+    const cleaned = cleanNewAthlete(input, new Date());
+    if ("problem" in cleaned) throw new Error(cleaned.problem);
+    let id = makeUuid();
+    await persist(supabase && (async () => {
+      const result = await supabase.rpc("add_athlete", { target_team_id: currentTeam.id, athlete_name: cleaned.name, athlete_birth_month: `${cleaned.birthMonth}-01`, athlete_sex: cleaned.sex, athlete_position: cleaned.position, consent: cleaned.measurementConsent });
+      if (!result.error) id = result.data as string;
+      return result;
+    }));
+    const athlete: Athlete = { id, displayName: cleaned.name, birthMonth: cleaned.birthMonth, sex: cleaned.sex, position: cleaned.position, teamIds: [currentTeam.id], measurementConsent: cleaned.measurementConsent };
+    setAthletes((current) => [...current, athlete].sort((a, b) => a.displayName.localeCompare(b.displayName, "en-GB")));
+    return id;
+  }, [currentTeam, persist, supabase, user]);
+
+  const updateAthlete = useCallback(async (id: string, input: NewAthleteInput) => {
+    const previous = athletes.find((athlete) => athlete.id === id);
+    if (!previous) throw new Error("No such athlete.");
+    const cleaned = cleanNewAthlete(input, new Date());
+    if ("problem" in cleaned) throw new Error(cleaned.problem);
+    const next: Athlete = { ...previous, displayName: cleaned.name, birthMonth: cleaned.birthMonth, sex: cleaned.sex, position: cleaned.position, measurementConsent: cleaned.measurementConsent };
+    const dropped = previous.measurementConsent && !next.measurementConsent ? measurements.filter((measurement) => measurement.athleteId === id) : [];
+    setAthletes((current) => current.map((athlete) => athlete.id === id ? next : athlete));
+    if (dropped.length) setMeasurements((current) => current.filter((measurement) => measurement.athleteId !== id));
+    try {
+      await persist(supabase && (() => supabase.from("athletes").update({ display_name: next.displayName, birth_month: `${next.birthMonth}-01`, sex: next.sex, position: next.position, measurement_consent: next.measurementConsent }).eq("id", id)));
+    } catch (error) {
+      setAthletes((current) => current.map((athlete) => athlete.id === id ? previous : athlete));
+      if (dropped.length) setMeasurements((current) => [...current, ...dropped]);
+      throw error;
+    }
+  }, [athletes, measurements, persist, supabase]);
+
+  const removeAthleteFromTeam = useCallback(async (id: string, teamId: string) => {
+    setAthletes((current) => current.map((athlete) => athlete.id === id ? { ...athlete, teamIds: athlete.teamIds.filter((candidate) => candidate !== teamId) } : athlete));
+    try {
+      await persist(supabase && (() => supabase.from("team_athletes").delete().eq("athlete_id", id).eq("team_id", teamId)));
+    } catch (error) {
+      setAthletes((current) => current.map((athlete) => athlete.id === id && !athlete.teamIds.includes(teamId) ? { ...athlete, teamIds: [...athlete.teamIds, teamId] } : athlete));
+      throw error;
+    }
+  }, [persist, supabase]);
+
+  const deleteAthlete = useCallback(async (id: string) => {
+    const athlete = athletes.find((candidate) => candidate.id === id);
+    if (!athlete) throw new Error("No such athlete.");
+    const theirResults = results.filter((result) => result.athleteId === id);
+    const theirMeasurements = measurements.filter((measurement) => measurement.athleteId === id);
+    setAthletes((current) => current.filter((candidate) => candidate.id !== id));
+    setResults((current) => current.filter((result) => result.athleteId !== id));
+    setMeasurements((current) => current.filter((measurement) => measurement.athleteId !== id));
+    try {
+      await persist(supabase && (() => supabase.rpc("delete_athlete", { target_athlete_id: id })));
+    } catch (error) {
+      setAthletes((current) => [...current, athlete].sort((a, b) => a.displayName.localeCompare(b.displayName, "en-GB")));
+      setResults((current) => [...current, ...theirResults]);
+      setMeasurements((current) => [...current, ...theirMeasurements]);
+      throw error;
+    }
+    if (!supabase) setDemoOvrRows((current) => current.filter((row) => row.athleteId !== id));
+    setOvrRowsVersion((version) => version + 1);
+  }, [athletes, measurements, persist, results, supabase]);
 
   const createTestDay = useCallback(async (input: { title: string; heldOn: string }) => {
     if (!user || !currentTeam) throw new Error("Choose a team first");
@@ -689,12 +795,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<SpenstContextValue>(() => ({
     user, authLoading, workspaceLoaded, isDemoMode: !supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed,
-    setSidebarCollapsed, setCurrentTeamId: selectTeam, clearNotice: () => setNotice(null), signIn, signOut, createTestDay, saveResult,
+    setSidebarCollapsed, setCurrentTeamId: selectTeam, clearNotice: () => setNotice(null), signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
     createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,
     customBatteries, setTeamBattery, saveBattery, deleteBattery,
-  }), [user, authLoading, workspaceLoaded, supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed, selectTeam, signIn, signOut, createTestDay, saveResult,
+  }), [user, authLoading, workspaceLoaded, supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed, selectTeam, signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
     createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,

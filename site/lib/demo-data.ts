@@ -11,7 +11,7 @@ import type { Athlete, HandballPosition, Measurement, Profile, Sex, Team, TestDa
  * out. Nothing here is real, and nothing is persisted.
  */
 
-export const demoUser: Profile = { id: "user-demo", email: "coach@club.example", fullName: "Demo Coach", initials: "DC", color: "#67467e", isGlobalAdmin: false };
+export const demoUser: Profile = { id: "user-demo", email: "coach@club.example", fullName: "Demo Coach", initials: "DC", color: "#67467e", isGlobalAdmin: true };
 
 export const demoTeams: Team[] = [
   {
