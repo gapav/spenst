@@ -14,7 +14,8 @@
     "db:push": "bash scripts/db.sh push",
     "db:baseline": "bash scripts/db.sh baseline",
     "db:backup": "bash scripts/db.sh backup",
-    "db:sql": "bash scripts/db.sh sql"
+    "db:sql": "bash scripts/db.sh sql",
+    "data:season-template": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/season-template-sql.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

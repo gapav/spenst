@@ -122,6 +122,14 @@ reasoning is not lost.
     became #10–#17; references to an item number before this decision mean
     that issue.
 
+23. **Season data ships as data scripts, not migrations** (decided 13 November
+    2026). Data for one team’s plan, such as phases, week notes and a
+    throughline, is written as typed data in `site/lib/season-templates/`,
+    tested, and turned into a SQL script in `site/supabase/data/`. The
+    maintainer runs it once with `npm run db:sql -- -f …`, after a backup.
+    Migrations stay schema-only, and the Actions agent never runs SQL
+    (decision 21).
+
 ## Open questions
 
 Waiting on an answer from the club, OVR or real data. An answer becomes a
