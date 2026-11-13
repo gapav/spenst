@@ -11,10 +11,13 @@ All application code lives in `site/`. At the root:
 - `docs/` — `product.md` (the brief), `decisions.md` (numbered, append-only,
   cited as “decision 17”, with the open questions), and working design
   documents (programming and athletes; visualization backlog; the S&C
-  Learning Path, `docs/learning-path.md`, behind items 0004–0008) — read the
+  Learning Path, `docs/learning-path.md`, behind issues #5–#9) — read the
   relevant one before building those features.
-- `work/` — one file per change, conventions in `work/README.md`; ideas in
-  `work/backlog.md`. `/spec` writes an item, `/ship` finishes one.
+- Work is **GitHub issues on the project board** “Spenst” (Backlog → Ready →
+  In progress → In review → Done; decision 22). `/spec` writes an issue;
+  labelling it `agent` has Claude build it in Actions and open a PR
+  (`@claude` in a comment asks for changes); `/ship` turns a locally built
+  change into a PR. `work/` is retired.
 - `.claude/rules/` — notes for one area each, loaded when you open its files.
 - `site/AGENTS.md` (aliased by `site/CLAUDE.md`) — the working rules.
 

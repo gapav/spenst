@@ -109,6 +109,18 @@ reasoning is not lost.
     own migration history; the connection is in the gitignored
     `site/.env.db`, which agents never read. Raw `supabase db …`, `psql` and
     `supabase start` stay denied. Shipped migrations stay immutable.
+22. **Work lives on the GitHub board, not in `work/`** (decided 13 November
+    2026), as in Grep (its decision 1). Each change is an issue on the
+    project “Spenst” (Backlog → Ready → In progress → In review → Done),
+    specced in the shape of `.github/ISSUE_TEMPLATE/work.yml`. An issue
+    labelled `agent` is built by Claude in Actions
+    (`.github/workflows/claude.yml`) and comes back as a pull request; a
+    change built locally goes through `/ship` to a pull request too. The PR
+    carries what a work file used to: the ticked “Done when” lines, the
+    checks and the steps before merging. `work/` is retired: work items
+    0001–0008 became issues #2–#9 (item N is issue N + 1) and the backlog
+    became #10–#17; references to an item number before this decision mean
+    that issue.
 
 ## Open questions
 

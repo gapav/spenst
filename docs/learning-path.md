@@ -1,7 +1,7 @@
 # Spenst and the S&C Learning Path
 
-*Design, 13 November 2026. Why Spenst grows the features in work items
-0004–0008, and the context a builder needs. Read this before building any of
+*Design, 13 November 2026. Why Spenst grows the features in issues
+#5–#9, and the context a builder needs. Read this before building any of
 them.*
 
 ## What the Learning Path is
@@ -73,20 +73,20 @@ gets its own season plan.
 
 | Steps | Task | Spenst today | Gap |
 |---|---|---|---|
-| 0, 36 | Six tasks for Case H: needs analysis, season outline, 6-week block, a normal week and a two-match week, two sessions, three monitoring rules | Season plan, blocks, sessions | Match days (0004), monitoring rules (0007), the needs analysis (0008) |
-| 12–24 | One session for each physical quality, built with the **nine questions** of Step 23 | Session builder | Session reasoning: the nine questions (0008) |
-| 25 | Concurrent training: mark where two qualities compete for recovery in one week | Sessions on dates | Week view by match day (0004), reasoning (0008) |
-| 26 | A normal match week from MD+1 to MD, with a reason for each day | Sessions on dates, week labels | **Match days and MD labels (0004)** |
-| 27 | The Step 26 week again in two versions (high/low, microdosed) | None | **Copy a week (0005)** |
-| 28–29 | A periodisation model and a 6-week in-season block: what develops, what is kept, the deload, and what in week 3 will change the plan | Blocks with focus, notes and emphasis | Block reasoning and a review signal (0008) |
-| 30–33 | Off-season and preseason, a congested week (Saturday → Wednesday → Saturday), deload/taper/detraining, the annual plan | Phases, blocks, week labels | Match days and congestion (0004), copying blocks (0005) |
-| 34 | The smallest monitoring system: what to measure, how often, and the number that changes the plan | Nothing in the app; `workouts.readiness` and `session_rpe` exist, unused | **Logging (0006) and monitoring rules (0007)** |
-| 35 | Compare sessions, a week and a block with Boyle, DeFranco and Ballou | None | A “Compared with” note (0008) |
+| 0, 36 | Six tasks for Case H: needs analysis, season outline, 6-week block, a normal week and a two-match week, two sessions, three monitoring rules | Season plan, blocks, sessions | Match days (#5), monitoring rules (#8), the needs analysis (#9) |
+| 12–24 | One session for each physical quality, built with the **nine questions** of Step 23 | Session builder | Session reasoning: the nine questions (#9) |
+| 25 | Concurrent training: mark where two qualities compete for recovery in one week | Sessions on dates | Week view by match day (#5), reasoning (#9) |
+| 26 | A normal match week from MD+1 to MD, with a reason for each day | Sessions on dates, week labels | **Match days and MD labels (#5)** |
+| 27 | The Step 26 week again in two versions (high/low, microdosed) | None | **Copy a week (#6)** |
+| 28–29 | A periodisation model and a 6-week in-season block: what develops, what is kept, the deload, and what in week 3 will change the plan | Blocks with focus, notes and emphasis | Block reasoning and a review signal (#9) |
+| 30–33 | Off-season and preseason, a congested week (Saturday → Wednesday → Saturday), deload/taper/detraining, the annual plan | Phases, blocks, week labels | Match days and congestion (#5), copying blocks (#6) |
+| 34 | The smallest monitoring system: what to measure, how often, and the number that changes the plan | Nothing in the app; `workouts.readiness` and `session_rpe` exist, unused | **Logging (#7) and monitoring rules (#8)** |
+| 35 | Compare sessions, a week and a block with Boyle, DeFranco and Ballou | None | A “Compared with” note (#9) |
 
 **Another person must check every pass criterion.** The planned Claude
-connector (0001) lets Claude do this check. It reads the plan, the sessions
+connector (#2) lets Claude do this check. It reads the plan, the sessions
 and the reasoning in Spenst, and marks them against the checklist. Items
-0004–0008 store their data in a form 0001 can read and render as text.
+#5–#9 store their data in a form #2 can read and render as text.
 
 ## S&C grounding for the builder
 

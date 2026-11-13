@@ -1,0 +1,35 @@
+name: Work item
+description: A change to Spenst. Add the `agent` label when it is ready for Claude to build.
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What problem this solves, for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in, and what is explicitly out.
+      value: |
+        In:
+
+        Out:
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: Checkable lines — a test, a command, a page to open. The agent works from these.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Screens, files, edge cases, decisions already made.
