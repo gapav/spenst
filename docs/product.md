@@ -8,7 +8,7 @@ gates and a single OVR Velocity bar sensor. The name is the Norwegian word for e
 quality the profile measures.
 
 This file records the product thinking behind the template. The decisions it
-encodes are numbered in `docs/decisions.md`, the work in `work/`, and
+encodes are numbered in `docs/decisions.md`, the work in GitHub issues, and
 `CLAUDE.md` describes the code.
 
 Two working documents sit beside it in `docs/`:
