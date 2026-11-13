@@ -4,6 +4,7 @@ import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSpenst } from "@/components/app-provider";
+import { AddAthleteButton } from "@/components/add-athlete";
 import { AppShell } from "@/components/app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { AsymmetryStatus } from "@/components/profile-parts";
@@ -26,9 +27,9 @@ export default function AthletesPage() {
   }, [athletes, currentTeam, results, testDays, measurements, now, customBatteries]);
 
   return <AppShell><div className="spenst-page">
-    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Athletes" description="Every athlete’s latest results and asymmetry. Open one for their profile against the squad." />
+    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Athletes" description="Every athlete’s latest results and asymmetry. Open one for their profile against the squad." actions={currentTeam && <AddAthleteButton />} />
     {!workspaceLoaded || !now ? <p role="status" className="spenst-loading">Loading athletes …</p> : !summaries.length
-      ? <EmptyState icon={<UserRound size={24} />} title="No athletes on the team yet" body="Athletes are added to the team by a team admin." />
+      ? <EmptyState icon={<UserRound size={24} />} title="No athletes on the team yet" body={currentTeam?.role === "admin" ? "Add the squad one athlete at a time." : "Athletes are added to the team by a team admin."} action={<AddAthleteButton variant="primary" />} />
       : <>
         <section className="spenst-card spenst-rows overflow-hidden">
           {summaries.map(({ athlete, profile, asymmetry }) => <Link key={athlete.id} href={`/athletes/${athlete.id}`} className="athlete-row">

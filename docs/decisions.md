@@ -4,7 +4,7 @@ Numbered and append-only. Code, docs and work items cite them by number
 (“decision 17”), so a number is never reused or renumbered. To change one, add
 a new decision and strike the old one through with a pointer to it. Record
 only what the maintainer decided; a proposal waits under open questions or in
-a work item. The next number is **19**.
+a work item. The next number is **21**.
 
 Each of the first eighteen is easy to reverse. They are listed so the
 reasoning is not lost.
@@ -91,6 +91,24 @@ reasoning is not lost.
     one in use (`teams.battery_key`). The battery sets a test day's tests, the
     radar order, the leaderboard lists and the squad bests; results are kept
     whichever is in use. Batteries no longer follow the athlete's age.
+19. **Spenst's dev server runs on port 3001** (decided 1 November 2026), so
+    Grep keeps 3000, where its dev project's sign-in redirects point. The
+    port is pinned in `site/package.json`, so a taken port fails instead of
+    moving.
+20. **Spenst is the workspace for the S&C Learning Path's build tasks**
+    (decided 13 November 2026). The maintainer builds the sessions, weeks,
+    blocks, season plans and monitoring rules of the curriculum's adult track
+    in Spenst, one test team per case. Spenst grows what those tasks need
+    (work items 0004–0008); `docs/learning-path.md` has the context. No
+    programming for athletes under 14: the minimum-age rule stays as it is.
+21. **The agent applies migrations** (decided 13 November 2026), replacing
+    “the maintainer pastes SQL in the dashboard”, which was too much
+    friction. Every database change goes through `site/scripts/db.sh`
+    (`npm run db:*`, adapted from Grep's `scripts/migrate.sh`): it backs up
+    first, dry-runs, pushes with the Supabase CLI and keeps the project's
+    own migration history; the connection is in the gitignored
+    `site/.env.db`, which agents never read. Raw `supabase db …`, `psql` and
+    `supabase start` stay denied. Shipped migrations stay immutable.
 
 ## Open questions
 

@@ -9,8 +9,9 @@ paths:
   after the latest. Check the ledger in `DEPLOYMENT.md` before touching an
   existing file — `applied` ones are immutable (a hook enforces it); write a
   forward migration instead.
-- **Runs top to bottom in the Supabase SQL editor**, by hand. No CLI, no
-  `supabase db …`, no `psql`.
+- **Applied with `npm run db:push`** from `site/` (decision 21), which backs
+  up, dry-runs and keeps Supabase's migration history. No raw `supabase db …`
+  or `psql`; `npm run db:sql` for a one-off query.
 - **Every new table**: `enable row level security`, then
   `revoke all … from anon, authenticated` and grant `authenticated` only the
   verbs it needs (column-level `grant update (…)` where only some columns may
@@ -33,6 +34,6 @@ paths:
 - **Mirror the shape in the app**: types in `lib/types.ts`, loading and
   mutations in `components/app-provider.tsx` (with the demo branch), demo
   rows in `lib/demo-data.ts`.
-- **Hand off**: add a `pending` row to the ledger in `DEPLOYMENT.md`, and end
-  by naming the exact file(s) the maintainer must apply, in order. Never say
-  a migration is applied.
+- **Finish the job**: `npm run db:bootstrap`, then `npm run db:push`, which
+  updates the ledger in `DEPLOYMENT.md`. Say what was applied; if the push
+  failed, say that, with its output.

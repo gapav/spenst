@@ -33,9 +33,12 @@ Out: production and hosting (a later item), onboarding and password reset
 ## Manual steps
 
 - [ ] Create the Supabase project (dev).
-- [ ] Apply in the SQL editor, in order: `202610070001_initial.sql`,
-      `202610070002_programming.sql`, `202610070004_ovr_imports.sql`,
-      `202610070005_test_batteries.sql`. (There is no `…0003`.)
+- [ ] Paste `site/supabase/bootstrap.sql` into the SQL editor and run it
+      (all four migrations, in order; see “A new project in one paste” in
+      `DEPLOYMENT.md`).
+- [ ] Create your user (Authentication → Users → Add user, auto-confirm),
+      make it global admin and give it a first team (there is no
+      create-team screen yet).
 - [ ] Copy `site/.env.example` to `site/.env.local` and fill in the project's
       URL and publishable key.
 - [ ] Update the ledger in `DEPLOYMENT.md`.
@@ -44,6 +47,10 @@ Out: production and hosting (a later item), onboarding and password reset
 
 - Grep keeps a dev and a production project; Spenst will want the same once
   it is deployed.
+- The dev server is on `http://localhost:3001` (decision 19). Sign-in is by
+  password, so no redirect URL is needed now; if an email flow is turned on
+  later (password reset is in the backlog), set the project's Site URL to
+  that address.
 
 ## Log
 

@@ -19,11 +19,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Supabase migrations
 
-- The user applies database migrations manually in the Supabase dashboard. Never run commands that apply, push, reset, or otherwise mutate a local or remote Supabase database.
-- Make database changes only by creating or editing SQL files in `supabase/migrations/`. Do not claim that a migration has been applied.
-- Keep migrations ordered by their timestamped filename and safe to execute through the Supabase SQL editor.
-- Treat migrations that may already have been applied as immutable. If their application status is unclear, ask before editing them or add a new forward migration.
-- After changing database SQL, identify the exact migration file the user must apply manually and mention any required ordering.
+- You apply migrations, through `npm run db:*` only (`scripts/db.sh`, decision 21): write the file in `supabase/migrations/`, run `npm run db:push`, and report what it applied. `npm run db:status` shows the project's history. Never run `supabase db …`, `psql`, `supabase start` or a reset directly, and never read `.env.db`.
+- Keep migrations ordered by their timestamped filename, after the newest applied one (`db:push` refuses an out-of-order file).
+- Applied migrations are immutable: write a new forward migration instead.
+- Ask the maintainer before running SQL (`db:sql`) or a migration that deletes or overwrites existing data.
+- After adding a migration, run `npm run db:bootstrap` too, so `supabase/bootstrap.sql` stays complete.
 
 ## Implementation conventions
 

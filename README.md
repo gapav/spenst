@@ -21,7 +21,7 @@ design system, so the two read as one family.
 ```bash
 cd site
 npm install
-npm run dev     # http://localhost:3000 — demo mode with no .env.local
+npm run dev     # http://localhost:3001 — demo mode with no .env.local
 npm test
 npm run lint
 npm run build

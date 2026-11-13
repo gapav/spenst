@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSpenst } from "./app-provider";
 import { AppShell } from "./app-shell";
 import { AthleteOvrData } from "./athlete-ovr-data";
+import { EditAthleteButton } from "./add-athlete";
 import { PageHeading } from "./page-heading";
 import { AsymmetryStatus, FamilyLegend, PowerRadar } from "./profile-parts";
 import { AthleteTests, type Comparison } from "./athlete-tests";
@@ -75,6 +76,7 @@ export function AthleteProfileScreen({ athleteId }: { athleteId: string }) {
       eyebrow={teamNames || "Athlete"}
       title={athlete.displayName}
       description={[`${ageInYears(athlete.birthMonth, now)} years`, athlete.position && positionLabels[athlete.position], `${battery.name} battery`].filter(Boolean).join(" · ")}
+      actions={<EditAthleteButton athlete={athlete} />}
     />
 
     <div className="compare-bar" role="group" aria-label="Compare with">

@@ -10,7 +10,8 @@ All application code lives in `site/`. At the root:
   migration is applied where).
 - `docs/` — `product.md` (the brief), `decisions.md` (numbered, append-only,
   cited as “decision 17”, with the open questions), and working design
-  documents (programming and athletes; visualization backlog) — read the
+  documents (programming and athletes; visualization backlog; the S&C
+  Learning Path, `docs/learning-path.md`, behind items 0004–0008) — read the
   relevant one before building those features.
 - `work/` — one file per change, conventions in `work/README.md`; ideas in
   `work/backlog.md`. `/spec` writes an item, `/ship` finishes one.
@@ -37,7 +38,7 @@ reading both.
 Run everything from `site/` with `npm`:
 
 ```bash
-npm run dev            # next dev
+npm run dev            # next dev on port 3001, so Grep keeps 3000 (decision 19)
 npm run build          # next build --webpack (Webpack is deliberate, as in Grep)
 npm run lint           # eslint (flat config)
 npm test               # vitest run
@@ -45,13 +46,19 @@ npx vitest run lib/power-profile.test.ts     # single file
 npx vitest run -t "tags from 3%"             # single test by name
 ```
 
+Running the app, telling demo mode from a real project, and signing in
+locally: the `run-locally` skill.
+
 ## Hard rules
 
-- **Never mutate a database.** No `supabase db push/reset/start`, no applying
-  migrations. The user applies SQL by hand in the Supabase dashboard. Change the
-  schema only by adding files to `site/supabase/migrations/`, never claim a
-  migration has been applied, and treat shipped migrations as immutable — the
-  ledger in `DEPLOYMENT.md` says which have shipped.
+- **The database changes only through `npm run db:*`** (`site/scripts/db.sh`,
+  decision 21). You apply migrations yourself: add a file to
+  `site/supabase/migrations/`, then `npm run db:push` (it backs up, dry-runs,
+  applies, and updates the ledger in `DEPLOYMENT.md`). `db:status` shows what
+  is applied; `db:sql` runs a query. Never raw `supabase db …`, `psql`,
+  `supabase start` or `db reset`, and never read `site/.env.db`. Ask before
+  SQL that deletes or overwrites data. Applied migrations are immutable —
+  write a forward one.
 - **This is Next.js 16.** Page props use the generated `PageProps<"/route">` /
   `LayoutProps<"/">` types. Read `site/node_modules/next/dist/docs/` before
   changing framework code.
