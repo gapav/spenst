@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
 import { alternatingIssues, legsOf, cellBoolean, cellDate, cellNumber, defaultDates, exportedAt, importWrites, matchAthletes, measureKey, mergeOvrRows, ovrMeasures, ovrRows, parseOvrExport, planImport, rowChecksum, splitSide, sprintTimes, suggestMapping, type OvrMapping, type OvrSplit } from "./ovr-import";
-import { bestAttempt, columnsWithData, exercisesIn, rowsForTest, trendByDate, trendMetrics } from "./ovr-data";
+import { ATTEMPT_CONTEXT, ATTEMPT_METRICS, attemptFields, bestAttempt, bestOf, columnsWithData, detailsForResults, detailsOutOf, detailsSummary, exercisesIn, parseAttemptDetails, resultDetailLines, resultMetrics, rowsForTest, testAttempts, trendByDate, trendMetrics } from "./ovr-data";
+import { dateResults, latestValues } from "./power-profile";
 import type { Athlete, TestDay, TestResult } from "./types";
 import { demoOvrRows, demoResults } from "./demo-data";
 import { columnIndex, readWorkbook, WorkbookError } from "./xlsx";
@@ -405,5 +406,151 @@ describe("alternating legs", () => {
     const data = sheet([...set("Test One", 8, 1), ...set("Test One", 7, 2)]);
     const mappings = new Map([["velocity|split squat jump", { key: "velocity|split squat jump", testKey: "split_squat_jump" as const, side: null, firstLeg: "left" as const }]]);
     expect(alternatingIssues(data.velocity, mappings)).toEqual([{ athlete: "Test One", date: "2026-10-07", exercise: "Split Squat Jump", set: 2, reps: 7 }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Decision 27: a result keeps its best attempt's details
+
+describe("the best attempt's details", () => {
+  // Shaped like the 2026-10-07 export (no real names): a Hang Power Clean at
+  // 100 kg, three athletes × three reps; a 1 m lead-in + 10 m sprint with
+  // start and end gates only, one split per run, some runs from an in-beam
+  // start; and a 5-10-5 with no Distance and no Speed.
+  const fullRep = (athlete: string, repNo: number, avgPower: number, avgVelocity: number, duration: number, ea: number, peakPower: number, peakVelocity: number, rom: number, tpv: number) =>
+    [athlete, "Handball", "", "Test-group", "2026-10-07", "Hang Power Clean", "1", String(repNo), String(avgPower), String(avgVelocity), String(duration), String(ea), "100", String(peakPower), String(peakVelocity), String(rom), "", "", "off", String(tpv), ""];
+  const run = (athlete: string, exercise: string, sprint: number, distance: string, inBeam: string, speed: string, time: number) =>
+    [athlete, "Handball", "", "Test-group", "2026-10-07", exercise, String(sprint), "1", distance, inBeam, speed, String(time), String(time), inBeam === "Yes" ? "No" : "Yes", ""];
+  const TEN = "1.09yd Lead-in + 10.94yd";
+  const PRO = "5-10-5 (Pro Agility)";
+  const sheets = [
+    { name: "Velocity", rows: [VELOCITY_HEADERS,
+      fullRep("Test One", 1, 2105, 2.11, 0.62, 15.2, 10422, 4.31, 120.8, 0.34),
+      fullRep("Test One", 2, 2390, 2.4, 0.58, 17.9, 12039, 4.64, 122.4, 0.31),
+      fullRep("Test One", 3, 2250, 2.26, 0.6, 16.4, 11210, 4.47, 121.9, 0.33),
+      fullRep("Test Two", 1, 2799, 2.85, 0.5, 19.1, 13163, 4.93, 118.1, 0.28),
+      fullRep("Test Two", 2, 2650, 2.7, 0.52, 18.2, 12800, 4.8, 117.5, 0.29),
+      fullRep("Test Two", 3, 2500, 2.55, 0.55, 17.4, 12100, 4.7, 116.9, 0.3),
+      fullRep("Test Three", 1, 1900, 1.95, 0.7, 13.5, 9300, 3.9, 125.2, 0.4),
+      fullRep("Test Three", 2, 2010, 2.02, 0.66, 14.8, 9850, 4.02, 124.6, 0.37),
+      fullRep("Test Three", 3, 1980, 2.0, 0.68, 14.1, 9600, 3.97, 124.9, 0.39),
+    ] },
+    { name: "Jump", rows: [JUMP_HEADERS] },
+    { name: "Sprint", rows: [SPRINT_HEADERS,
+      run("Test One", TEN, 1, "10", "No", "18.6", 1.934),
+      run("Test One", TEN, 2, "10", "Yes", "19.4", 1.856),
+      run("Test Two", TEN, 1, "10", "No", "19.1", 1.885),
+      run("Test Two", PRO, 1, "", "No", "", 5.214),
+      run("Test Two", PRO, 2, "", "Yes", "", 5.102),
+    ] },
+  ];
+  const data = parseOvrExport(readWorkbook(xlsx(sheets)));
+  const team: Athlete[] = [...roster, { ...roster[0], id: "a3", displayName: "Test T." } as Athlete];
+  const matches = new Map([["Test One", "a1"], ["Test Two", "a2"], ["Test Three", "a3"]]);
+  const mappings = new Map(ovrMeasures(data).map((measure) => {
+    const mapping = suggestMapping(measure);
+    return [measure.key, measure.key === measureKey("sprint", PRO) ? { ...mapping, testKey: "cod_505" as const } : mapping];
+  }));
+  const base = { data, mappings, matches, teamId: "t", testDays: [] as TestDay[], results: [] as TestResult[] };
+  const plan = planImport(base);
+  const planned = (athleteId: string, testKey: string) => plan.dates[0].results.find((result) => result.athleteId === athleteId && result.testKey === testKey);
+
+  it("carries every number of the rep that gave the value", () => {
+    expect(team).toHaveLength(3);
+    expect(planned("a1", "hang_clean")).toMatchObject({ value: 12039, details: {
+      sheet: "velocity", setNumber: 1, repNumber: 2, loadKg: 100, peakPower: 12039, meanPower: 2390, peakVelocity: 4.64, meanVelocity: 2.4,
+      romCm: 122.4, tpvS: 0.31, durationS: 0.58, eaIndex: 17.9, attempts: 3,
+    } });
+    expect(planned("a3", "hang_clean")?.details).toMatchObject({ repNumber: 2, peakPower: 9850 });
+    expect(detailsSummary(planned("a1", "hang_clean")?.details)).toBe("100 kg · 12,039 W peak · 2,390 W mean · 4.64 m/s peak · 2.40 m/s mean · ROM 122.4 cm");
+    expect(detailsOutOf(planned("a1", "hang_clean")?.details)).toBe("best of 3 reps");
+  });
+
+  it("carries the run of a sprint, its start included, with one split per run", () => {
+    expect(planned("a1", "sprint_10m")).toMatchObject({ value: 1.856, details: { sheet: "sprint", sprintNumber: 2, splitNumber: 1, distanceM: 10, splitTimeS: 1.856, totalTimeS: 1.856, speedKmh: 19.4, inBeamStart: true, triggerStart: false, attempts: 2 } });
+    expect(detailsSummary(planned("a1", "sprint_10m")?.details)).toBe("10 m in 1.856 s · 19.4 km/h · in-beam start");
+  });
+
+  it("reads a 5-10-5 with no Distance by its total time", () => {
+    const pro = planned("a2", "cod_505");
+    expect(pro).toMatchObject({ value: 5.102, details: { sheet: "sprint", sprintNumber: 2, totalTimeS: 5.102, inBeamStart: true, attempts: 2 } });
+    expect(pro?.details).not.toHaveProperty("distanceM");
+    expect(pro?.details).not.toHaveProperty("speedKmh");
+    expect(detailsSummary(pro?.details)).toBe("5.102 s · in-beam start");
+  });
+
+  it("hands the details to the writes, and a second import of the file changes nothing", () => {
+    const written = importWrites(plan, { dates: defaultDates(plan), replaceDiffering: false });
+    expect(written.results.every((result) => result.details)).toBe(true);
+    const testDays: TestDay[] = written.newTestDays.map((date, index) => ({ id: `d${index}`, teamId: "t", heldOn: date, title: "OVR", notes: "" }));
+    const results: TestResult[] = written.results.map((result, index) => ({ id: `r${index}`, testDayId: "d0", athleteId: result.athleteId, testKey: result.testKey, side: result.side, value: result.value, details: result.details }));
+    const again = planImport({ ...base, testDays, results });
+    expect(again.dates[0].counts).toEqual({ new: 0, same: written.results.length, differs: 0 });
+    expect(importWrites(again, { dates: new Set(["2026-10-07"]), replaceDiffering: true }).results).toEqual([]);
+  });
+
+  it("finds the same attempt again from stored rows: what the backfill fills in", () => {
+    const rows = ovrRows(data, matches);
+    const stored = plan.dates[0].results.map((result) => ({ ...result, date: result.date }));
+    const found = detailsForResults(stored, rows, (key) => mappings.get(key) ?? null);
+    expect(found).toEqual(stored.map((result) => result.details));
+    // A value typed by hand is no attempt: no details.
+    expect(detailsForResults([{ athleteId: "a1", date: "2026-10-07", testKey: "hang_clean", side: null, value: 12000 }], rows, (key) => mappings.get(key) ?? null)).toEqual([null]);
+  });
+
+  it("offers every velocity column as a metric, the right way round, with the load as context", () => {
+    const { metrics, attempts } = testAttempts(ovrRows(data, matches), "hang_clean", (key) => mappings.get(key) ?? null);
+    expect(metrics.map((metric) => [metric.label, metric.best])).toEqual([
+      ["Peak power", "max"], ["Mean power", "max"], ["Peak velocity", "max"], ["Mean velocity", "max"],
+      ["ROM", "max"], ["Time to peak", "min"], ["Duration", "min"], ["EA index", "max"],
+    ]);
+    expect(metrics.some((metric) => metric.key === "loadKg")).toBe(false);
+    expect(ATTEMPT_CONTEXT.velocity.map((entry) => entry.key)).toEqual(["loadKg"]);
+    expect(attempts[0].values.loadKg).toBe(100);
+    // Lower is better: the quickest time to peak is the best, not the slowest.
+    const tpv = ATTEMPT_METRICS.velocity.find((metric) => metric.key === "tpvS")!;
+    const own = attempts.filter((attempt) => attempt.athleteId === "a1").map((attempt) => attempt.values.tpvS as number);
+    expect(bestOf(own, tpv.best)).toBe(0.31);
+    const duration = ATTEMPT_METRICS.velocity.find((metric) => metric.key === "durationS")!;
+    expect(bestOf(attempts.filter((attempt) => attempt.athleteId === "a2").map((attempt) => attempt.values.durationS as number), duration.best)).toBe(0.5);
+  });
+
+  it("lists every column of an attempt, the load and the start included", () => {
+    const rows = ovrRows(data, matches);
+    const rep = rows.find((row) => row.athleteId === "a1" && row.sheet === "velocity" && row.repNumber === 2)!;
+    expect(attemptFields([rep])).toEqual(expect.arrayContaining([{ label: "Load", text: "100.0 kg" }, { label: "Time to peak", text: "0.31 s" }, { label: "EA index", text: "17.90" }]));
+    const sprint = rows.find((row) => row.athleteId === "a1" && row.sheet === "sprint" && row.sprintNumber === 2)!;
+    expect(attemptFields([sprint])).toEqual(expect.arrayContaining([{ label: "In-beam start", text: "Yes" }, { label: "Trigger start", text: "No" }, { label: "Distance", text: "10.00 m" }]));
+  });
+
+  it("reads stored details back checked, and offers the stored metrics for a ranking", () => {
+    const details = planned("a1", "hang_clean")!.details;
+    expect(parseAttemptDetails(JSON.parse(JSON.stringify(details)))).toEqual(details);
+    expect(parseAttemptDetails({ sheet: "velocity", peakPower: "12039", romCm: "x", evil: 1 })).toEqual({ sheet: "velocity", peakPower: 12039 });
+    expect(parseAttemptDetails({ sheet: "bench" })).toBeNull();
+    expect(parseAttemptDetails(null)).toBeNull();
+    const results = plan.dates[0].results.filter((result) => result.testKey === "hang_clean");
+    expect(resultMetrics(results).map((metric) => metric.key)).toEqual(["meanPower", "peakVelocity", "meanVelocity", "romCm", "tpvS", "durationS", "eaIndex"]);
+    expect(resultMetrics(plan.dates[0].results.filter((result) => result.testKey === "sprint_10m")).map((metric) => [metric.key, metric.best])).toEqual([["speedKmh", "max"]]);
+  });
+});
+
+describe("demo results carry their attempts", () => {
+  it("has details on every OVR result of the seniors, and none on typed ones", () => {
+    const senior = demoResults.filter((result) => result.testDayId === "day-sen-aug" || result.testDayId === "day-sen-oct");
+    expect(senior.filter((result) => result.testKey !== "broad_jump" && result.testKey !== "med_ball_throw").every((result) => result.details)).toBe(true);
+    expect(senior.filter((result) => result.testKey === "broad_jump").every((result) => !result.details)).toBe(true);
+    const clean = senior.find((result) => result.testKey === "hang_clean")!;
+    expect(clean.details).toMatchObject({ sheet: "velocity", peakPower: clean.value, loadKg: 60 });
+  });
+
+  it("hands the details to the latest value, per leg for a one-leg test", async () => {
+    const { demoTestDays } = await import("./demo-data");
+    const latest = latestValues(dateResults(demoResults.filter((result) => result.athleteId === "a-martin"), demoTestDays));
+    expect(resultDetailLines(latest.get("hang_clean"))[0]).toMatch(/^60 kg · [\d,]+ W peak/);
+    const split = resultDetailLines(latest.get("split_squat_jump"));
+    expect(split).toHaveLength(2);
+    expect(split[0]).toMatch(/^Left: 20 kg/);
+    expect(split[1]).toMatch(/^Right: 20 kg/);
   });
 });

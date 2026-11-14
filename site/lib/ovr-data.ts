@@ -1,4 +1,5 @@
 import { measureKey, type OvrMapping, type OvrRow, type OvrSheetKind } from "./ovr-import";
+import type { AttemptDetailKey, AttemptDetails, Side } from "./types";
 
 /**
  * Reading stored OVR rows back: which columns an exercise actually has, and
@@ -238,16 +239,25 @@ export interface Attempt {
   side: "left" | "right" | null;
   label: string;
   rows: OvrRow[];
+  /** The row the attempt is read at: the rep or jump, or the split at the test's gate. */
+  gate: number;
   values: Record<string, number | null>;
 }
 
-/** First is the metric the test is scored on. */
-const ATTEMPT_METRICS: Record<OvrSheetKind, AttemptMetric[]> = {
+/**
+ * First is the metric the test is scored on. A higher power, velocity, ROM or
+ * EA index is better; a shorter time to peak velocity or rep duration is.
+ */
+export const ATTEMPT_METRICS: Record<OvrSheetKind, AttemptMetric[]> = {
   velocity: [
     { key: "peakPower", label: "Peak power", unit: "W", digits: 0, best: "max" },
     { key: "meanPower", label: "Mean power", unit: "W", digits: 0, best: "max" },
     { key: "peakVelocity", label: "Peak velocity", unit: "m/s", digits: 2, best: "max" },
     { key: "meanVelocity", label: "Mean velocity", unit: "m/s", digits: 2, best: "max" },
+    { key: "romCm", label: "ROM", unit: "cm", digits: 1, best: "max" },
+    { key: "tpvS", label: "Time to peak", unit: "s", digits: 2, best: "min" },
+    { key: "durationS", label: "Duration", unit: "s", digits: 2, best: "min" },
+    { key: "eaIndex", label: "EA index", unit: "", digits: 2, best: "max" },
   ],
   jump: [
     { key: "jumpHeightCm", label: "Height", unit: "cm", digits: 1, best: "max" },
@@ -258,6 +268,13 @@ const ATTEMPT_METRICS: Record<OvrSheetKind, AttemptMetric[]> = {
     { key: "time", label: "Time", unit: "s", digits: 3, best: "min" },
     { key: "topSpeed", label: "Top speed", unit: "km/h", digits: 1, best: "max" },
   ],
+};
+
+/** Shown beside an attempt, never ranked: the load says what the bar weighed, not how well it moved. */
+export const ATTEMPT_CONTEXT: Record<OvrSheetKind, Omit<AttemptMetric, "best">[]> = {
+  velocity: [{ key: "loadKg", label: "Load", unit: "kg", digits: 1 }],
+  jump: [],
+  sprint: [],
 };
 
 export function testAttempts(rows: readonly OvrRow[], testKey: string, mappingFor: Parameters<typeof rowsForTest>[2]): { sheet: OvrSheetKind | null; metrics: AttemptMetric[]; attempts: Attempt[] } {
@@ -272,8 +289,9 @@ export function testAttempts(rows: readonly OvrRow[], testKey: string, mappingFo
       side: row.side,
       label: `${row.side ? `${row.side === "left" ? "Left" : "Right"} · ` : ""}set ${row.setNumber ?? "–"}, rep ${row.repNumber ?? "–"}`,
       rows: [row],
+      gate: 0,
       values: sheet === "velocity"
-        ? { peakPower: row.peakPower, meanPower: row.meanPower, peakVelocity: row.peakVelocity, meanVelocity: row.meanVelocity }
+        ? { peakPower: row.peakPower, meanPower: row.meanPower, peakVelocity: row.peakVelocity, meanVelocity: row.meanVelocity, romCm: row.romCm, tpvS: row.tpvS, durationS: row.durationS, eaIndex: row.eaIndex, loadKg: row.loadKg }
         : { jumpHeightCm: row.jumpHeightCm, rsi: row.rsi, contactTimeS: row.contactTimeS },
     }));
   } else {
@@ -294,11 +312,167 @@ export function testAttempts(rows: readonly OvrRow[], testKey: string, mappingFo
         return row.totalTimeS ?? (elapsed || null);
       });
       const speeds = ordered.slice(0, at + 1).map((row) => row.speedKmh ?? 0);
-      return { key, athleteId: ordered[0].athleteId, side: null, label: `Run ${ordered[0].sprintNumber ?? "–"}`, rows: ordered, values: { time: times[at], topSpeed: Math.max(...speeds) || null } };
+      return { key, athleteId: ordered[0].athleteId, side: null, label: `Run ${ordered[0].sprintNumber ?? "–"}`, rows: ordered, gate: at, values: { time: times[at], topSpeed: Math.max(...speeds) || null } };
     });
   }
   const metrics = ATTEMPT_METRICS[sheet].filter((metric) => attempts.some((attempt) => typeof attempt.values[metric.key] === "number"));
   return { sheet, metrics, attempts };
+}
+
+// ---------------------------------------------------------------------------
+// The best attempt, kept with the result (decision 27)
+
+const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+
+/** What a result keeps of the attempt it came from: every number OVR wrote for it. */
+export function attemptDetails(attempt: Attempt, outOf: number): AttemptDetails {
+  const row = attempt.rows[attempt.gate] ?? attempt.rows[0];
+  const pick = (keys: readonly AttemptDetailKey[]) => Object.fromEntries(keys.map((key) => [key, row[key]]).filter(([, value]) => finite(value)));
+  if (row.sheet === "velocity") return { sheet: "velocity", ...pick(["setNumber", "repNumber", "loadKg", "meanVelocity", "peakVelocity", "meanPower", "peakPower", "romCm", "tpvS", "durationS", "eaIndex"]), attempts: outOf };
+  if (row.sheet === "jump") return { sheet: "jump", ...pick(["setNumber", "repNumber", "jumpHeightCm", "contactTimeS", "rsi"]), attempts: outOf };
+  // A run: the split at the test's gate, the distance covered to it, and the run's start.
+  const covered = row.distanceM === null ? null : Math.round(attempt.rows.slice(0, attempt.gate + 1).reduce((sum, split) => sum + (split.distanceM ?? 0), 0) * 100) / 100;
+  const details: AttemptDetails = { sheet: "sprint", ...pick(["sprintNumber", "splitNumber", "splitTimeS"]), attempts: outOf };
+  if (covered !== null) details.distanceM = covered;
+  if (finite(attempt.values.time)) details.totalTimeS = attempt.values.time;
+  if (finite(attempt.values.topSpeed)) details.speedKmh = attempt.values.topSpeed;
+  if (row.inBeamStart !== null) details.inBeamStart = row.inBeamStart;
+  if (row.triggerStart !== null) details.triggerStart = row.triggerStart;
+  return details;
+}
+
+/** What a result is scored on, per sheet: the first attempt metric. */
+const SCORED_KEY: Record<OvrSheetKind, string> = { velocity: "peakPower", jump: "jumpHeightCm", sprint: "time" };
+
+/**
+ * The best attempt behind each result, from the OVR rows of its day: the
+ * attempt whose scored value is the result, picked out of the test's attempts
+ * the way the test day reads them. Null when no attempt gives the value (a
+ * value typed by hand). The import uses it for what it writes, demo data and
+ * tests for what is stored — the backfill in migration 202611140001 is the
+ * same rule in SQL.
+ */
+export function detailsForResults(
+  results: readonly { athleteId: string; date: string; testKey: string; side: Side | null; value: number }[],
+  rows: readonly OvrRow[],
+  mappingFor: Parameters<typeof rowsForTest>[2],
+): (AttemptDetails | null)[] {
+  const byDay = new Map<string, OvrRow[]>();
+  for (const row of rows) {
+    const key = `${row.athleteId}|${row.performedOn}`;
+    byDay.set(key, [...(byDay.get(key) ?? []), row]);
+  }
+  const cache = new Map<string, ReturnType<typeof testAttempts>>();
+  return results.map((result) => {
+    const day = `${result.athleteId}|${result.date}`;
+    const key = `${day}|${result.testKey}`;
+    const read = cache.get(key) ?? testAttempts(byDay.get(day) ?? [], result.testKey, mappingFor);
+    cache.set(key, read);
+    if (!read.sheet) return null;
+    const scored = SCORED_KEY[read.sheet];
+    const own = read.attempts.filter((attempt) => attempt.athleteId === result.athleteId && attempt.side === result.side);
+    const match = own.find((attempt) => finite(attempt.values[scored]) && Math.abs((attempt.values[scored] as number) - result.value) < 0.0005);
+    return match ? attemptDetails(match, own.length) : null;
+  });
+}
+
+const DETAIL_NUMBERS: readonly AttemptDetailKey[] = ["setNumber", "repNumber", "sprintNumber", "splitNumber", "loadKg", "meanVelocity", "peakVelocity", "meanPower", "peakPower", "romCm", "tpvS", "durationS", "eaIndex", "jumpHeightCm", "contactTimeS", "rsi", "distanceM", "splitTimeS", "totalTimeS", "speedKmh"];
+
+/** `test_results.details` from the database: checked, never trusted. */
+export function parseAttemptDetails(value: unknown): AttemptDetails | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (raw.sheet !== "velocity" && raw.sheet !== "jump" && raw.sheet !== "sprint") return null;
+  const details: AttemptDetails = { sheet: raw.sheet };
+  for (const key of DETAIL_NUMBERS) {
+    const number = typeof raw[key] === "string" ? Number(raw[key]) : raw[key];
+    if (finite(number)) details[key] = number;
+  }
+  if (typeof raw.inBeamStart === "boolean") details.inBeamStart = raw.inBeamStart;
+  if (typeof raw.triggerStart === "boolean") details.triggerStart = raw.triggerStart;
+  if (finite(raw.attempts) && raw.attempts > 0) details.attempts = raw.attempts;
+  return details;
+}
+
+const formatNumber = (value: number, digits: number) => new Intl.NumberFormat("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+const measured = (value: number | undefined, digits: number, unit: string, before = "", after = "") => value === undefined ? null : `${before}${formatNumber(value, digits)}${unit ? ` ${unit}` : ""}${after}`;
+
+/** The best attempt in a line: “100 kg · 12,039 W peak · 4.64 m/s peak · ROM 122.4 cm”. */
+export function detailsSummary(details: AttemptDetails | null | undefined): string {
+  if (!details) return "";
+  const parts = details.sheet === "velocity"
+    ? [details.loadKg === undefined ? null : `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(details.loadKg)} kg`, measured(details.peakPower, 0, "W", "", " peak"), measured(details.meanPower, 0, "W", "", " mean"),
+      measured(details.peakVelocity, 2, "m/s", "", " peak"), measured(details.meanVelocity, 2, "m/s", "", " mean"), measured(details.romCm, 1, "cm", "ROM ")]
+    : details.sheet === "jump"
+      ? [measured(details.jumpHeightCm, 1, "cm"), measured(details.contactTimeS, 3, "s", "contact "), measured(details.rsi, 2, "", "RSI ")]
+      : [details.distanceM !== undefined && details.totalTimeS !== undefined ? `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 }).format(details.distanceM)} m in ${formatNumber(details.totalTimeS, 3)} s` : measured(details.totalTimeS, 3, "s"),
+        measured(details.speedKmh, 1, "km/h"), details.inBeamStart ? "in-beam start" : details.triggerStart ? "trigger start" : null];
+  return parts.filter(Boolean).join(" · ");
+}
+
+/** “best of 3 reps” */
+export function detailsOutOf(details: AttemptDetails | null | undefined): string {
+  if (!details?.attempts) return "";
+  const noun = details.sheet === "velocity" ? "rep" : details.sheet === "jump" ? "jump" : "run";
+  return `best of ${details.attempts} ${details.attempts === 1 ? noun : `${noun}s`}`;
+}
+
+/** Where the attempt sits: “set 1, rep 2”, “run 3”. */
+export function detailsPlace(details: AttemptDetails | null | undefined): string {
+  if (!details) return "";
+  if (details.sheet === "sprint") return details.sprintNumber !== undefined ? `run ${details.sprintNumber}` : "";
+  return details.setNumber !== undefined ? `set ${details.setNumber}, rep ${details.repNumber ?? "–"}` : "";
+}
+
+/** A result's details for a tooltip: one line, or a line per leg. */
+export function resultDetailLines(value: { details?: AttemptDetails | null; sideDetails?: Partial<Record<Side, AttemptDetails>> } | null | undefined): string[] {
+  if (!value) return [];
+  const line = (details: AttemptDetails | null | undefined, prefix = "") => {
+    const text = detailsSummary(details);
+    return text ? `${prefix}${text}` : null;
+  };
+  const sided = value.sideDetails && (value.sideDetails.left || value.sideDetails.right);
+  return (sided ? [line(value.sideDetails?.left, "Left: "), line(value.sideDetails?.right, "Right: ")] : [line(value.details)]).filter((entry): entry is string => Boolean(entry));
+}
+
+/**
+ * Every column of an attempt OVR filled, labelled and formatted as on the
+ * test day: “Load 100.0 kg”, “In-beam start Yes”. A run lists each split.
+ */
+export function attemptFields(rows: readonly OvrRow[]): { label: string; text: string }[] {
+  const skip = new Set<OvrColumnKey>(["groups", "sport", "position"]);
+  const columns = columnsWithData(rows).columns.filter((column) => !skip.has(column.key));
+  const many = rows.length > 1;
+  const fields: { label: string; text: string }[] = [];
+  for (const column of columns) {
+    const values = rows.map((row) => row[column.key]).filter(filled);
+    if (!values.length) continue;
+    const same = values.every((value) => value === values[0]);
+    // Per split only where splits differ; a run's start is the run's.
+    const text = !many || same ? formatCell(column, values[0]) : rows.map((row) => formatCell(column, row[column.key])).join(" / ");
+    fields.push({ label: column.label, text: column.unit && !text.includes("—") ? `${text} ${column.unit}` : text });
+  }
+  return fields;
+}
+
+// ---------------------------------------------------------------------------
+// Ranking results on another stored metric
+
+/** The metrics a stored result can be ranked on, by sheet: the attempt metrics under their stored names. First is the scored one. */
+export const RESULT_METRICS: Record<OvrSheetKind, (AttemptMetric & { key: AttemptDetailKey })[]> = {
+  velocity: ATTEMPT_METRICS.velocity as (AttemptMetric & { key: AttemptDetailKey })[],
+  jump: ATTEMPT_METRICS.jump as (AttemptMetric & { key: AttemptDetailKey })[],
+  sprint: [
+    { key: "totalTimeS", label: "Time", unit: "s", digits: 3, best: "min" },
+    { key: "speedKmh", label: "Speed", unit: "km/h", digits: 1, best: "max" },
+  ],
+};
+
+/** The stored metrics these results have, besides the scored one, for a ranking switch. */
+export function resultMetrics(results: readonly { details?: AttemptDetails | null }[]): (AttemptMetric & { key: AttemptDetailKey })[] {
+  const sheet = results.find((result) => result.details)?.details?.sheet;
+  if (!sheet) return [];
+  return RESULT_METRICS[sheet].slice(1).filter((metric) => results.some((result) => finite(result.details?.[metric.key])));
 }
 
 /** The best of some values, the way the metric is read. */

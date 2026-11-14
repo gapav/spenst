@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { CircleHelp, X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ComponentProps, ReactNode } from "react";
@@ -112,4 +112,12 @@ export function Avatar({ name, initials, color, size = "md" }: { name: string; i
 
 export function EmptyState({ icon, title, body, action }: { icon: ReactNode; title: string; body: string; action?: ReactNode }) {
   return <div className="grid min-h-72 place-items-center rounded-[24px] border border-dashed border-[var(--line-strong)] bg-[var(--surface-raised)]/45 px-6 text-center"><div className="max-w-sm"><div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--paper-deep)]">{icon}</div><h3 className="text-lg font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{body}</p>{action && <div className="mt-5">{action}</div>}</div></div>;
+}
+
+/** An explanation kept off the page: a small “?” that opens it in place. */
+export function HelpTip({ label, children }: { label: string; children: ReactNode }) {
+  return <details className="help-tip">
+    <summary aria-label={label} title={label}><CircleHelp size={15} aria-hidden="true" /></summary>
+    <div className="help-tip-body">{children}</div>
+  </details>;
 }

@@ -100,7 +100,24 @@ export interface TestResult {
   value: number;
   /** The OVR import that wrote it, so an import can be undone; null when typed by hand. */
   importId?: string | null;
+  /** The OVR attempt the value came from (decision 27); null when typed by hand. */
+  details?: AttemptDetails | null;
 }
+
+/**
+ * The best attempt behind an imported result: every number OVR wrote for the
+ * rep, jump or run the value is, so a result can be read — and ranked — on
+ * more than one metric without paging in `ovr_rows`. The keys are the
+ * `OvrRow` field names; a column OVR left empty is absent.
+ * `test_results.details` in the database, checked by `parseAttemptDetails`.
+ */
+export type AttemptDetailKey =
+  | "setNumber" | "repNumber" | "sprintNumber" | "splitNumber"
+  | "loadKg" | "meanVelocity" | "peakVelocity" | "meanPower" | "peakPower" | "romCm" | "tpvS" | "durationS" | "eaIndex"
+  | "jumpHeightCm" | "contactTimeS" | "rsi"
+  | "distanceM" | "splitTimeS" | "totalTimeS" | "speedKmh";
+
+export type AttemptDetails = { sheet: "velocity" | "jump" | "sprint"; inBeamStart?: boolean; triggerStart?: boolean; /** How many attempts the best was picked from. */ attempts?: number } & Partial<Record<AttemptDetailKey, number>>;
 
 export interface ResultInput {
   testDayId: string;

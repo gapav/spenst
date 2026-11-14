@@ -144,6 +144,20 @@ reasoning is not lost.
     updated; on a phone it stays a page. The block overview's exercise ×
     week matrix is read-only. Editing progressions in it is #14.
 
+27. **A test result keeps its best attempt's details** (decided 14 November
+    2026, issue #24; 24–26 are left to the issues that name them). A value
+    read from OVR is stored with every number of the rep, jump or run that
+    gave it — load, mean and peak velocity and power, ROM, time to peak,
+    duration, EA index; or a run's split and total time, distance covered,
+    speed and start — in one checked `jsonb`, `test_results.details`
+    (migration `202611140001`). Hovers, the athlete's history and rankings
+    on another metric read it without paging in `ovr_rows`, which stays the
+    full record. One rule picks the attempt everywhere: `detailsForResults`
+    in `lib/ovr-data.ts`, mirrored in SQL by the one-off backfill
+    `site/supabase/data/202611140001-backfill-result-details.sql`. A value
+    typed by hand has no details. Values, not scores, still: a result can be
+    ranked on peak velocity, never on a points total.
+
 ## Open questions
 
 Waiting on an answer from the club, OVR or real data. An answer becomes a

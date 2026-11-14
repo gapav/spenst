@@ -9,6 +9,7 @@ import { AppShell } from "./app-shell";
 import { overviewHeadline, overviewHeadlines, overviewSalutation } from "@/lib/overview";
 import { asymmetryFlags, summarizeSquad, teamAthletes, testDayProgress } from "@/lib/squad";
 import { batteryFor, familyOf, formatValue, TESTS } from "@/lib/power-profile";
+import { resultDetailLines } from "@/lib/ovr-data";
 import { formatDay, localDateKey } from "@/lib/utils";
 
 export function Overview() {
@@ -31,7 +32,7 @@ export function Overview() {
   // The squad's best on each test, from everyone's latest result: who sets the mark.
   const bests = currentTeam ? battery.flatMap((key) => {
     const leader = summaries.map((summary) => ({ summary, test: summary.profile.tests.find((test) => test.test.key === key) })).find(({ test }) => test?.rank === 1 && test.latest);
-    return leader?.test?.latest ? [{ key, name: leader.summary.athlete.displayName, value: leader.test.latest.value }] : [];
+    return leader?.test?.latest ? [{ key, name: leader.summary.athlete.displayName, value: leader.test.latest.value, details: resultDetailLines(leader.test.latest) }] : [];
   }) : [];
   const latestDay = testDays.filter((day) => day.teamId === currentTeam?.id).sort((a, b) => b.heldOn.localeCompare(a.heldOn))[0] ?? null;
   const progress = latestDay ? testDayProgress(latestDay, athletes, results) : null;
@@ -83,7 +84,7 @@ export function Overview() {
         {bests.length > 0 && <section className="overview-card overview-band" aria-labelledby="squad-bests-heading">
           <h2 id="squad-bests-heading">Squad bests</h2>
           <p>The best latest result on each test · {squad.length} athletes</p>
-          <ul className="squad-bests">{bests.map((best) => <li key={best.key} data-family={familyOf(TESTS[best.key])}><small><i className="family-dot" />{TESTS[best.key].shortName}</small><strong className="tabular">{formatValue(best.value, TESTS[best.key].unit)}</strong><span>{best.name}</span></li>)}</ul>
+          <ul className="squad-bests">{bests.map((best) => <li key={best.key} data-family={familyOf(TESTS[best.key])} title={[`${TESTS[best.key].name}: ${formatValue(best.value, TESTS[best.key].unit)} · ${best.name}`, ...best.details].join("\n")}><small><i className="family-dot" />{TESTS[best.key].shortName}</small><strong className="tabular">{formatValue(best.value, TESTS[best.key].unit)}</strong><span>{best.name}</span></li>)}</ul>
         </section>}
       </>}
   </div></AppShell>;
