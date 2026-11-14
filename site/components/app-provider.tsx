@@ -153,6 +153,13 @@ interface SpenstContextValue {
   deleteAthlete(id: string): Promise<void>;
   /** Starts a test day on the current team and hands back its id. */
   createTestDay(input: { title: string; heldOn: string }): Promise<string>;
+  /** Renames, re-dates or re-notes a test day. Any coach on the team. */
+  updateTestDay(id: string, input: { title: string; heldOn: string; notes: string }): Promise<void>;
+  /**
+   * Deletes a test day and every result on it. Team admins only. OVR rows are
+   * kept by date, not by day, so a re-import can bring the values back.
+   */
+  deleteTestDay(id: string): Promise<void>;
   /** Writes one value; `value: null` clears it. */
   saveResult(input: ResultInput): Promise<void>;
   /** The built-in library followed by the teams' own exercises. */
@@ -475,6 +482,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     return day.id;
   }, [currentTeam, persist, supabase, user]);
+
+  const updateTestDay = useCallback(async (id: string, input: { title: string; heldOn: string; notes: string }) => {
+    const previous = testDays.find((day) => day.id === id);
+    if (!previous) throw new Error("No such test day");
+    const next: TestDay = { ...previous, title: input.title.trim() || "Test day", heldOn: input.heldOn, notes: input.notes.trim() };
+    setTestDays((current) => current.map((day) => day.id === id ? next : day));
+    try {
+      await persist(supabase && (() => supabase.from("test_days").update({ title: next.title, held_on: next.heldOn, notes: next.notes }).eq("id", id)));
+    } catch (error) {
+      setTestDays((current) => current.map((day) => day.id === id ? previous : day));
+      throw error;
+    }
+  }, [persist, supabase, testDays]);
+
+  const deleteTestDay = useCallback(async (id: string) => {
+    const day = testDays.find((candidate) => candidate.id === id);
+    if (!day) return;
+    const team = teams.find((candidate) => candidate.id === day.teamId);
+    if (team?.role !== "admin") throw new Error("Only a team admin can delete a test day.");
+    const theirResults = results.filter((result) => result.testDayId === id);
+    setTestDays((current) => current.filter((candidate) => candidate.id !== id));
+    setResults((current) => current.filter((result) => result.testDayId !== id));
+    try {
+      // RLS turns a refused delete into zero rows, not an error: count them.
+      await persist(supabase && (async () => {
+        const result = await supabase.from("test_days").delete().eq("id", id).select("id");
+        return !result.error && !result.data?.length ? { error: { message: "Nothing deleted" }, status: 403 } : result;
+      }));
+    } catch (error) {
+      setTestDays((current) => [...current, day]);
+      setResults((current) => [...current, ...theirResults]);
+      throw error;
+    }
+  }, [persist, results, supabase, teams, testDays]);
 
   const saveResult = useCallback(async (input: ResultInput) => {
     if (!user) throw new Error("Sign in to record results");
@@ -935,12 +976,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<SpenstContextValue>(() => ({
     user, authLoading, workspaceLoaded, isDemoMode: !supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed,
-    setSidebarCollapsed, setCurrentTeamId: selectTeam, clearNotice: () => setNotice(null), signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
+    setSidebarCollapsed, setCurrentTeamId: selectTeam, clearNotice: () => setNotice(null), signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, updateTestDay, deleteTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
     createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession, copySessions, moveSessions, deleteSessions, restoreSessions, matches, createMatch, updateMatch, deleteMatch,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,
     customBatteries, setTeamBattery, saveBattery, deleteBattery,
-  }), [user, authLoading, workspaceLoaded, supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed, selectTeam, signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, saveResult,
+  }), [user, authLoading, workspaceLoaded, supabase, teams, currentTeam, athletes, measurements, testDays, results, saveState, notice, sidebarCollapsed, selectTeam, signIn, signOut, createTeam, addAthlete, updateAthlete, removeAthleteFromTeam, deleteAthlete, createTestDay, updateTestDay, deleteTestDay, saveResult,
     exercises, exerciseById, seasons, periods, weekNotes, sessions, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod, setWeekNote,
     createSession, updateSession, setSessionsStatus, editSessionContent, deleteSession, copySessions, moveSessions, deleteSessions, restoreSessions, matches, createMatch, updateMatch, deleteMatch,
     testImports, ovrMappings, importOvr, undoImport, importFileUrl, loadOvrRows, loadOvrRowsForDay, ovrRowsVersion,

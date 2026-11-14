@@ -1,17 +1,25 @@
 import Link from "next/link";
 
 /**
- * A spring rising to a ball: the jump the profile measures and the ball the
- * athletes play with. Drawn in the same weight as Grep’s folded-page mark, and
- * like it, in `currentColor`, so it takes the ink of whatever it sits on.
+ * ᚱ, the rune Raidō — the R of the runic alphabet, “the ride, the journey”:
+ * the initial and a season of progress in one sign (decision 26). Straight
+ * strokes and firm corners, because runes were cut, not drawn. In
+ * `currentColor`; the classes colour it brass (`--mark`).
+ *
+ * At 32 px and up it sits in a thin ring. Below that the ring disappears, so
+ * `plain` drops it and thickens the rune instead.
  */
-export function LogoMark({ className = "spenst-logo-mark" }: { className?: string }) {
-  return <svg aria-hidden="true" viewBox="0 0 40 40" className={className}>
-    <path d="M5 33 L13 25 L19.5 30 L28 19" fill="none" stroke="currentColor" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="32" cy="8.5" r="5" fill="currentColor" />
+export function LogoMark({ className = "spenst-logo-mark", plain = false }: { className?: string; plain?: boolean }) {
+  if (plain) return <svg aria-hidden="true" viewBox="0 0 48 48" className={className}>
+    <path d="M14 6 V42 M14 6 L32 15 L14 24 L34 42" fill="none" stroke="currentColor" strokeWidth="5.5" strokeLinecap="butt" strokeLinejoin="miter" />
+  </svg>;
+  return <svg aria-hidden="true" viewBox="0 0 48 48" className={className}>
+    <circle cx="24" cy="24" r="22.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    <path d="M18 11 V37 M18 11 L30 17 L18 23 L31 37" fill="none" stroke="currentColor" strokeWidth="3.75" strokeLinecap="butt" strokeLinejoin="miter" />
   </svg>;
 }
 
+/** The lockup: the mark and “röskr” in Inter Tight. The ö stays in the name; `roskr` is for URLs and code. */
 export function Logo({ compact = false }: { compact?: boolean }) {
-  return <Link href="/" className="spenst-logo" aria-label="Spenst home"><LogoMark />{!compact && <span className="spenst-logo-word" aria-hidden="true">spenst</span>}</Link>;
+  return <Link href="/" className="spenst-logo" aria-label="Röskr home"><LogoMark />{!compact && <span className="spenst-logo-word" aria-hidden="true">röskr</span>}</Link>;
 }

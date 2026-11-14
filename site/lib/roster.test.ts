@@ -11,7 +11,7 @@ describe("cleanNewAthlete", () => {
 
   it("accepts the whole year an athlete turns 14, and refuses the year after", () => {
     expect(cleanNewAthlete({ ...input, birthMonth: "2012-12" }, asOf)).toMatchObject({ name: "Ida K." });
-    expect(cleanNewAthlete({ ...input, birthMonth: "2013-01" }, asOf)).toEqual({ problem: "Spenst is for athletes from the year they turn 14." });
+    expect(cleanNewAthlete({ ...input, birthMonth: "2013-01" }, asOf)).toEqual({ problem: "Röskr is for athletes from the year they turn 14." });
   });
 
   it("asks for a name, a birth month and a sex", () => {

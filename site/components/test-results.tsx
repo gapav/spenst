@@ -4,7 +4,7 @@ import { ChartScatter, PenLine, Scale, Table2, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { attemptFields, bestAttempt, bestOf, columnsWithData, formatCell, niceTicks, type Attempt, type AttemptMetric, type OvrColumn } from "@/lib/ovr-data";
-import { HelpTip } from "./ui";
+import { HelpTip } from "./help-tip";
 import { deviceLabels, familyOf, familyLabels, type TestDefinition } from "@/lib/power-profile";
 import type { Athlete, Side, TestResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -145,10 +145,11 @@ export function TestResults({ test, squad, results, metrics, attempts, entry, re
       <AsymmetryView lines={ranked} metric={metric} isScored={isScored} selectedId={selectedId} onSelect={(id) => setSelectedId(selectedId === id ? null : id)} />
       {selected && <AttemptDetail line={selected} metric={metric} scored={scored} metrics={metrics} onClose={() => setSelectedId(null)} />}
     </> : view === "chart" ? <>
-      <div className="tr-legend" aria-hidden="true">
+      <div className="tr-legend">
         <span><i className="tr-key-best" />Best</span>
         {attempts.length > 0 && <span><i className="tr-key-attempt" />Every other attempt</span>}
         {test.sided && isScored && <span><i className="tr-key-side" />Left · <i className="tr-key-side is-right" />Right</span>}
+        {!attempts.length && onRecord && <HelpTip label="Where these results come from" align="end" className="ml-auto">Typed in from the {test.device === "tape" ? "tape measure" : "My Jump app"} — the best of 2–3 attempts per athlete.</HelpTip>}
       </div>
       <div className="tr-chart" ref={chart} onMouseLeave={() => setTip(null)}>
         <div className="tr-axis" aria-hidden="true">
@@ -186,9 +187,7 @@ export function TestResults({ test, squad, results, metrics, attempts, entry, re
         {tip && <div className="tr-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}><strong>{tip.title}</strong>{tip.lines.map((line) => <span key={line}>{line}</span>)}</div>}
       </div>
       {selected && <AttemptDetail line={selected} metric={metric} scored={scored} metrics={metrics} onClose={() => setSelectedId(null)} />}
-      {!attempts.length && (onRecord
-        ? <p className="tr-note">Typed in from the {test.device === "tape" ? "tape measure" : "My Jump app"} — the best of 2–3 attempts per athlete.</p>
-        : <p className="tr-note">No OVR rows behind these results. <Link href="/testing/import">Import the OVR export</Link> to see every attempt.</p>)}
+      {!attempts.length && !onRecord && <p className="tr-note">No OVR rows behind these results. <Link href="/testing/import">Import the OVR export</Link> to see every attempt.</p>}
     </> : <ResultsTable ranked={ranked} metrics={metrics.length ? metrics : [scored]} test={test} />}
   </section>;
 }
@@ -284,13 +283,13 @@ function AsymmetryView({ lines, metric, isScored, selectedId, onSelect }: { line
       })}
       {tip && <div className="tr-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}><strong>{tip.title}</strong>{tip.lines.map((line) => <span key={line}>{line}</span>)}</div>}
     </div>
-    <div className="tr-legend" aria-hidden="true">
+    <div className="tr-legend">
       <span><i className="as-key is-ok" />Under {ASYMMETRY_TAG_PERCENT} %</span>
       <span><i className="as-key is-tagged" />{ASYMMETRY_TAG_PERCENT}–{ASYMMETRY_HIGH_PERCENT} % · follow up</span>
       <span><i className="as-key is-high" />Over {ASYMMETRY_HIGH_PERCENT} % · large</span>
       <span><b className="as-key-leg">L</b><b className="as-key-leg is-right">R</b>Each leg, same scale</span>
+      <HelpTip label="How the legs are split" align="end" className="ml-auto">Legs from alternating reps: in each set, reps 1, 3, 5, 7 are the starting leg (left foot forward unless the import says otherwise). Click a name for every rep.</HelpTip>
     </div>
-    <p className="tr-note">Legs from alternating reps: in each set, reps 1, 3, 5, 7 are the starting leg (left foot forward unless the import says otherwise). Click a name for every rep.</p>
   </div>;
 }
 
@@ -313,7 +312,10 @@ function AttemptDetail({ line, metric, scored, metrics, onClose }: { line: Line;
   return <div className="tr-detail">
     <header>
       <div className="min-w-0"><h3>{line.athlete.displayName}</h3><p>{summary ? `${summary.summary} · ${summary.outOf}` : "Entered by hand — no OVR attempts behind this result."}</p></div>
-      <button type="button" className="spenst-icon-button" aria-label="Close" onClick={onClose}><X size={16} /></button>
+      <div className="flex items-center gap-1">
+        {line.attempts.length > 0 && !sprint && <HelpTip label="What the bars show" align="end">{sided ? "Every rep in order, a gap between sets; L and R per leg. The highlighted reps are each leg’s best — the results" : "Set · rep. The highlighted rep is the one the result comes from"}{metric.key !== scored.key ? ` (best ${scored.label.toLocaleLowerCase("en-GB")})` : ""}.</HelpTip>}
+        <button type="button" className="spenst-icon-button" aria-label="Close" onClick={onClose}><X size={16} /></button>
+      </div>
     </header>
     {line.attempts.length > 0 && (sprint ? <SprintRuns attempts={line.attempts} bestKey={bestKey ?? null} /> : <div className="tr-multiples">
       {[metric, ...metrics.filter((candidate) => candidate.key !== metric.key), ...extraMetrics(line.attempts, metrics)].map((shown) => {
@@ -348,7 +350,6 @@ function AttemptDetail({ line, metric, scored, metrics, onClose }: { line: Line;
         <dl className="attempt-fields">{attemptFields(best.rows).map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.text}</dd></div>)}</dl>
       </div>;
     })}
-    {line.attempts.length > 0 && !sprint && <p className="tr-note">{sided ? "Every rep in order, a gap between sets; L and R per leg. The highlighted reps are each leg’s best — the results" : "Set · rep. The highlighted rep is the one the result comes from"}{metric.key !== scored.key ? ` (best ${scored.label.toLocaleLowerCase("en-GB")})` : ""}.</p>}
   </div>;
 }
 
@@ -405,7 +406,7 @@ function ResultsTable({ ranked, metrics, test }: { ranked: Line[]; metrics: Atte
   return <div className="overflow-x-auto">
     <table className="data-table ovr-table">
       <thead><tr>
-        <th scope="col">Athlete</th>
+        <th scope="col"><span className="inline-flex items-center gap-1">Athlete<HelpTip label="What this table shows">{test.name}: every row OVR recorded, every column. The highlighted rows are each athlete’s best.</HelpTip></span></th>
         {shown.map((column) => <th key={column.key} scope="col" className={column.digits !== undefined ? "num" : undefined}>{column.label}{column.unit ? <small> {column.unit}</small> : null}</th>)}
         {extra.map((key) => <th key={key} scope="col">{key}</th>)}
       </tr></thead>
@@ -418,6 +419,5 @@ function ResultsTable({ ranked, metrics, test }: { ranked: Line[]; metrics: Atte
         </tr>);
       })}</tbody>
     </table>
-    <p className="tr-note">{test.name}: every row OVR recorded, every column. The highlighted rows are each athlete’s best.</p>
   </div>;
 }

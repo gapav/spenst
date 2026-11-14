@@ -159,7 +159,7 @@ export type MatchKind = "league" | "cup" | "friendly" | "playoff";
 
 /**
  * A match on the team's calendar. Like a session it sits on a date and
- * belongs to no period; the plan labels the days around it (MD-3, MD, MD+1).
+ * belongs to no period; the plan labels the days before it (MD-3, MD-1, MD).
  */
 export interface Match {
   id: string;

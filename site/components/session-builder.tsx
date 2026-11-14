@@ -18,7 +18,9 @@ import {
   updateSetGroup, updateSlot, updateVariant,
   type AthleteLevel, type Exercise, type ExerciseSlot, type MetricKey, type Section, type SectionKind, type SessionContent, type SetGroup, type VariantLevel,
 } from "@/lib/training";
-import { cn } from "@/lib/utils";
+import { cn, countLabel } from "@/lib/utils";
+import { teamAthletes } from "@/lib/squad";
+import { WinButton } from "./win";
 
 /** The metrics a coach prescribes, in the order the fields appear. Power is logged, never prescribed. */
 const PRESCRIBED: readonly Exclude<MetricKey, "load" | "power" | "velocity">[] = ["reps", "contacts", "distance", "time", "height", "rpe"];
@@ -44,7 +46,7 @@ export function SessionBuilderScreen({ sessionId }: { sessionId: string }) {
  * above shows it on its own.
  */
 export function SessionBuilder({ sessionId, onDeleted, onClose }: { sessionId: string; onDeleted(): void; onClose?(): void }) {
-  const { sessions, seasons, periods, teams, matches, exercises, exerciseById, workspaceLoaded, updateSession, editSessionContent, deleteSession } = useSpenst();
+  const { sessions, seasons, periods, teams, matches, athletes, exercises, exerciseById, workspaceLoaded, updateSession, editSessionContent, deleteSession } = useSpenst();
   const session = sessions.find((candidate) => candidate.id === sessionId) ?? null;
   const [picking, setPicking] = useState<Picking>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -53,6 +55,7 @@ export function SessionBuilder({ sessionId, onDeleted, onClose }: { sessionId: s
   const labels = useMemo(() => session ? slotLabels(session.content) : new Map<string, string>(), [session]);
 
   if (!workspaceLoaded) return <p role="status" className="spenst-loading">Loading the session …</p>;
+  const squadSize = session ? teamAthletes(athletes, session.teamId).length : 0;
   if (!session || !summary) return <EmptyState icon={<Plus size={24} />} title="Session not found" body="The session was deleted, or belongs to a team you are not on." action={onClose ? <Button variant="secondary" onClick={onClose}>Back to the plan</Button> : <Link className="spenst-action" href="/plan">To the season plan</Link>} />;
 
   // Every content change goes through the provider’s queue; a failure is
@@ -76,7 +79,7 @@ export function SessionBuilder({ sessionId, onDeleted, onClose }: { sessionId: s
         <div className="builder-meta">
           <label className="metric-field"><span>Date</span><input className="metric-input is-date" type="date" value={session.scheduledOn ?? ""} onChange={(event) => void updateSession(session.id, { scheduledOn: event.target.value || null }).catch(() => undefined)} /></label>
           <label className="metric-field"><span>Time of day</span><select className="metric-input" value={session.slot ?? ""} onChange={(event) => void updateSession(session.id, { slot: (event.target.value || null) as SessionSlot | null }).catch(() => undefined)}><option value="">Any time</option><option value="am">Morning (AM)</option><option value="pm">Afternoon (PM)</option></select></label>
-          {matchDay && <span className="md-label is-large" title={`${matchDay.label}${matchDay.other ? ` · ${matchDay.other}` : ""} — ${matchTitle(matchDay.match)}`}>{matchDay.label}</span>}
+          {matchDay && <span className="md-label is-large" title={`${matchDay.label} — ${matchTitle(matchDay.match)}`}>{matchDay.label}</span>}
           <ul className="builder-stats" aria-label="Summary">
             <li><strong>{summary.exercises}</strong> {summary.exercises === 1 ? "exercise" : "exercises"}</li>
             <li><strong>{summary.sets}</strong> {summary.sets === 1 ? "set" : "sets"}</li>
@@ -88,7 +91,7 @@ export function SessionBuilder({ sessionId, onDeleted, onClose }: { sessionId: s
       <div className="builder-head-actions">
         {published
           ? <><Tag tone="sage">Published</Tag><Button variant="ghost" size="sm" onClick={() => void updateSession(session.id, { status: "draft" }).catch(() => undefined)}><Undo2 size={15} />Back to draft</Button></>
-          : <Button size="sm" onClick={() => void updateSession(session.id, { status: "published" }).catch(() => undefined)}><Send size={15} />Publish to the team</Button>}
+          : <WinButton kind="send" size="sm" heads={squadSize} text={countLabel(squadSize, "athlete", "athletes")} onClick={() => void updateSession(session.id, { status: "published" }).catch(() => undefined)}><Send size={15} />Publish to the team</WinButton>}
         {confirmDelete
           ? <><Button variant="danger" size="sm" onClick={() => { onDeleted(); void deleteSession(session.id).catch(() => undefined); }}>Delete the session</Button><Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancel</Button></>
           : <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} aria-label="Delete the session"><Trash2 size={16} /></Button>}

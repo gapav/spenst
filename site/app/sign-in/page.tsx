@@ -28,18 +28,18 @@ function SignInForm() {
 
   return <div className="grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
     <section className="relative hidden overflow-hidden bg-[var(--chrome)] p-12 text-[var(--on-chrome)] lg:flex lg:flex-col">
-      <div className="absolute -right-24 top-24 h-96 w-96 rounded-full border-[90px] border-[var(--signature)] opacity-90" />
+      <div className="absolute -right-24 top-24 h-96 w-96 rounded-full border-[3px] border-[var(--mark)]" />
       <div className="absolute bottom-[-13rem] left-[-8rem] h-[30rem] w-[30rem] rounded-full border-[1px] border-white/20" />
       <div className="relative"><Logo /></div>
       <div className="relative mt-auto max-w-xl">
-        <p className="text-xs font-black uppercase tracking-[.2em] text-[var(--lime)]">Made for test day</p>
+        <p className="text-xs font-black uppercase tracking-[.2em] text-[var(--on-chrome-soft)]">Made for test day</p>
         <h1 className="mt-5 text-6xl font-black leading-[.98] tracking-[-.06em]">Explosive?<br />Now you<br />know.</h1>
         <p className="mt-6 max-w-md text-lg leading-8 text-white/60">Sprints, jumps and bar speed become one power profile per athlete — and a plan for what each of them needs.</p>
       </div>
     </section>
     <main className="grid place-items-center p-5 sm:p-10"><div className="w-full max-w-md">
       <div className="mb-10 lg:hidden"><Logo /></div>
-      <p className="text-xs font-black uppercase tracking-[.17em] text-[var(--accent)]">Welcome to Spenst</p>
+      <p className="text-xs font-black uppercase tracking-[.17em] text-[var(--accent)]">Welcome to Röskr</p>
       <h2 className="mt-3 text-4xl font-black tracking-[-.055em]">Sign in.</h2>
       <p className="mt-4 leading-7 text-[var(--ink-soft)]">{isDemoMode ? "Demo mode — any email and any password open the demo." : "Use the email address and password your administrator gave you."}</p>
       <form className="mt-8 grid gap-4" onSubmit={submit}>

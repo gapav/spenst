@@ -249,11 +249,11 @@ export function PlannerProvider({ season, periods, sessions, matches, today, chi
 // A week
 
 const MIX: { label: string; modalities: Modality[]; color: string }[] = [
-  { label: "Strength", modalities: ["strength", "isometric"], color: "var(--tag-band-2-fill)" },
-  { label: "Power and Olympic", modalities: ["power", "olympic", "med-ball"], color: "var(--tag-apricot-ink)" },
-  { label: "Plyometrics", modalities: ["plyometric"], color: "var(--tag-teal-ink)" },
-  { label: "Sprint", modalities: ["sprint"], color: "var(--tag-sky-ink)" },
-  { label: "Prep and conditioning", modalities: ["prep", "conditioning"], color: "var(--ink-faint)" },
+  { label: "Strength", modalities: ["strength", "isometric"], color: "var(--mix-strength)" },
+  { label: "Power and Olympic", modalities: ["power", "olympic", "med-ball"], color: "var(--mix-power)" },
+  { label: "Plyometrics", modalities: ["plyometric"], color: "var(--mix-plyometric)" },
+  { label: "Sprint", modalities: ["sprint"], color: "var(--mix-sprint)" },
+  { label: "Prep and conditioning", modalities: ["prep", "conditioning"], color: "var(--mix-prep)" },
 ];
 
 /** “3 sessions · about 140 min · 45 contacts”, and the week's mix of work as one small stacked bar. */
@@ -343,7 +343,7 @@ function DayCell({ date, compact = false, detailed = false }: { date: string; co
   >
     <div className="day-head">
       <span className="day-name">{formatDay(date, { weekday: "short" })} <b>{formatDay(date, { day: "numeric" })}</b></span>
-      {label && <span className={cn("md-label", label.label === "MD" && "is-match")} title={`${label.label}${label.other ? ` · ${label.other}` : ""} — ${matchTitle(label.match)}`}>{label.label}</span>}
+      {label && <span className={cn("md-label", label.label === "MD" && "is-match")} title={`${label.label} — ${matchTitle(label.match)}`}>{label.label}</span>}
       <AddMenu date={date} />
     </div>
     {!empty && <ul className="day-items">
@@ -526,7 +526,7 @@ function MatchDialog({ state, onClose }: { state: Exclude<MatchDialogState, null
       onClose();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "The match wasn’t saved."); setBusy(false); }
   }
-  return <Modal open size="sm" title={state.mode === "create" ? "New match" : "Edit match"} description="Matches set the match-day labels (MD-1, MD+1) on the days around them." onClose={onClose}>
+  return <Modal open size="sm" title={state.mode === "create" ? "New match" : "Edit match"} description="Matches set the match-day labels (MD-3, MD-1) on the days before them." onClose={onClose}>
     <form className="grid gap-4" onSubmit={(event) => void save(event)}>
       <label className="grid gap-1.5 text-sm font-semibold">Opponent<input className={inputClass} value={draft.opponent} onChange={(event) => set({ opponent: event.target.value })} placeholder="e.g. Fjellby" autoFocus maxLength={80} /></label>
       <div className="grid grid-cols-2 gap-3">

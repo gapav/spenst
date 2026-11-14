@@ -7,38 +7,38 @@
      on. A literal in a component is a colour that will be wrong in one of them.
      Ink runs from full strength down: body text, a step back (card labels, nav),
      secondary copy, icons and counts, and switched-off rows. */
-  --ink: #2e1b3d;
-  --ink-mid: #63526e;
-  --ink-soft: #6a5a74;
-  --ink-faint: #8d7f97;
-  --ink-disabled: #a79dae;
-  --paper: #efebe4;
-  --paper-deep: #f3f0ea;
-  --paper-deep-hover: #e9e5de;
-  --surface: #fffefd;
+  --ink: #0e2433;
+  --ink-mid: #334b5a;
+  --ink-soft: #4e6472;
+  --ink-faint: #71889a;
+  --ink-disabled: #a3b1ba;
+  --paper: #eef3f5;
+  --paper-deep: #e6edf0;
+  --paper-deep-hover: #dce5ea;
+  --surface: #fcfdfd;
   /* One step above a surface: inputs, the cards inside a card, open menus. */
   --surface-raised: #ffffff;
   /* Frosted chips laid over a tinted hero, like the date badge. */
   --glass: #ffffffb8;
   --glass-soft: #ffffff80;
-  --line: #e7e3dd;
-  --line-dashed: #d3cdd7;
-  --line-strong: #c8c3b7;
-  --line-stronger: #aaa69b;
-  --line-hover: #cdbbd9;
-  --line-hover-strong: #b3a5bd;
+  --line: #dce5ea;
+  --line-dashed: #c6d3da;
+  --line-strong: #b9c8d0;
+  --line-stronger: #93a6b1;
+  --line-hover: #a9c1cf;
+  --line-hover-strong: #8fa9b8;
   /* Hover and pressed tints. Ink-coloured, so they darken paper and lighten
      the dark theme's grounds without either needing its own rule. */
-  --hover-wash: #2e1b3d08;
-  --hover-wash-strong: #2e1b3d0d;
-  --scrim: rgb(28 18 36 / .45);
+  --hover-wash: #0e243308;
+  --hover-wash-strong: #0e24330d;
+  --scrim: rgb(8 20 29 / .45);
   /* The brand purple, split by job: `--accent` is read as text, borders and
      focus rings, `--accent-fill` sits under a white label. They are the same
      colour here and part ways in the dark theme, where text wants a lighter
      purple and a fill under white wants a deeper one. */
-  --accent: #67467e;
-  --accent-fill: #67467e;
-  --accent-fill-hover: #4b2f60;
+  --accent: #1f4e6b;
+  --accent-fill: #1f4e6b;
+  --accent-fill-hover: #163b52;
   --on-accent: #ffffff;
   --mint: #bfe0cf;
   --lime: #dbea9c;
@@ -62,15 +62,15 @@
   --warn-ink: #9c3913;
   /* Bands that stay dark in both themes: the live session's header, the
      builder's time check, the sign-in hero. Being dark is what they say. */
-  --chrome: #2e1b3d;
+  --chrome: #0e2433;
   --on-chrome: #ffffff;
-  --on-chrome-soft: #e5d9ed;
+  --on-chrome-soft: #c9d6de;
   /* Coach avatars. The signed-in coach wears the brand purple; team-mates wear
      the lilac the sidebar avatar already uses. `readableInk` picks the label
      colour, so these two are the only values to change. Each chip carries its
      own label colour, so both read on either theme's ground unchanged. */
-  --avatar-self: #67467e;
-  --avatar-peer: #e9ddf7;
+  --avatar-self: #1f4e6b;
+  --avatar-peer: #dce9f0;
   /* Exercise-library tags. A topic wears a hue of its own — the same one its
      card wears when it has no media of its own — while the three age bands
      share one lilac ramp that deepens with age. Colour therefore says which
@@ -136,18 +136,23 @@
   /* Uploaded club logos are drawn for white paper, so they keep a white plate
      in the dark theme too. Deliberately not redefined below. */
   --logo-plate: #ffffff;
-  --court-line: #fffefd;
-  /* The welcome art's profile. Lime in light; dark dims it, as Grep dims the
-     court's apricot, so the bright action stays the brightest thing there. */
-  --profile-lime: var(--lime);
+  /* The overview's welcome art: a power profile in fjord on a night panel,
+     the brand board's ground, with the squad's best in brass. */
+  --art-ground: #0e2433;
+  --art-shape: #1f4e6b;
+  --art-edge: #8ec1e3;
+  --art-line: #eaf1f4;
+  --art-best: #c9a24a;
   --shadow: 0 18px 50px rgba(16, 32, 29, 0.08);
-  --font-sans-stack: var(--font-grep), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans-stack: var(--font-ui), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* The wordmark and page titles. */
+  --font-display-stack: var(--font-display), var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   /* The brand set the rebrand introduced. Where it repeats a token above it is
      an alias, so the dark theme defines each colour once. */
   --grep-ink: var(--ink);
   --grep-muted: var(--ink-soft);
   --grep-paper: var(--paper);
-  --grep-line: #ded7cf;
+  --grep-line: #d3dee4;
   /* Chart accents: one hue per family of tests (see QUALITY_FAMILY). Validated
      with the dataviz palette check in radar order, light and dark. */
   --q-speed: #eb6834;
@@ -161,59 +166,92 @@
   --q-horizontal-wash: #0083001f;
   --q-upper-wash: #2a78d61f;
   /* Cards sit on the page, not in it: a hairline of shade under every card. */
-  --card-shadow: 0 1px 2px rgb(46 27 61 / .06), 0 8px 20px -10px rgb(46 27 61 / .16);
+  --card-shadow: 0 1px 2px rgb(14 36 51 / .06), 0 8px 20px -10px rgb(14 36 51 / .16);
   --grep-apricot: #ffb28a;
   --apricot-hover: #ffa77c;
   --apricot-wash: #ffb28a33;
   --apricot-wash-strong: #ffb28a38;
   /* Ink for labels on apricot and lime, which are bright in both themes. */
-  --on-bright: #2e1b3d;
-  --grep-lilac: #e9ddf7;
-  --lilac-hover: #ded0ef;
-  --lilac-wash: #f4edf9;
-  --lilac-line: #c2a7d6;
-  --lilac-edge: #b493cb;
-  --lilac-ink: #40244f;
-  --lilac-ink-soft: #715287;
-  /* ── Spenst ──────────────────────────────────────────────────────────────
-     Everything above is Grep's palette, copied verbatim so the two apps stay
-     one family: same ink, paper, lilac and purple, same dark theme. Keep it in
-     step with plannr/site/app/globals.css. What follows is Spenst's own.
+  --on-bright: #0e2433;
+  --grep-lilac: #dce9f0;
+  --lilac-hover: #cfe1eb;
+  --lilac-wash: #eaf2f6;
+  --lilac-line: #a9c8d9;
+  --lilac-edge: #6e9fbb;
+  --lilac-ink: #163b52;
+  --lilac-ink-soft: #3b6684;
+  /* ── Röskr ───────────────────────────────────────────────────────────────
+     Röskr's own palette (decision 26), “Fjord”: night ink on ice paper, fjord
+     blue for action and selection, brass for the mark and the squad best. The
+     names above are still Grep's (`--grep-lilac` is now an ice blue): the
+     tokens were Grep's, the values no longer are.
 
-     The signature is the one colour that says which app you are in: Grep's
-     primary action and current page are apricot, Spenst's are lime. Lime is
-     bright in both themes, so its label is `--on-bright` everywhere. */
-  --signature: var(--lime);
-  --signature-hover: #d0e283;
-  --signature-wash: #dbea9c59;
-  --signature-wash-strong: #dbea9c80;
+     The signature is the primary action and the current page: fjord under a
+     white label here, a light fjord under night ink in the dark theme, so its
+     label is `--on-signature`, not `--on-bright`. */
+  --signature: #1f4e6b;
+  --signature-hover: #163b52;
+  --on-signature: #ffffff;
+  --signature-wash: #1f4e6b1a;
+  --signature-wash-strong: #1f4e6b29;
+  /* Brass means two things only: the Röskr mark, and the best in the squad. */
+  --mark: #9c7a2a;
+  --best: #9c7a2a;
+  --best-wash: #c9a24a2e;
+  /* The season plan. Phases are the calm ground, told apart by hue: cool
+     slate for training, warm sand for competition, a muted rose-grey for a
+     break. Blocks run along the strength–speed continuum, so they are one
+     fjord ramp, deepest at absolute strength. Matches are ink on ice. */
+  --phase-training: #e3eaee;
+  --phase-training-ink: #334b5a;
+  --phase-competition: #eee4cc;
+  --phase-competition-ink: #5c4a1f;
+  --phase-break: #f1e6e7;
+  --phase-break-ink: #6e3f45;
+  --block-absolute-strength: #1f4e6b;
+  --block-absolute-strength-ink: #ffffff;
+  --block-accelerative-strength: #3b7393;
+  --block-accelerative-strength-ink: #ffffff;
+  --block-strength-speed: #a9c8d9;
+  --block-strength-speed-ink: #0e2433;
+  --block-speed-strength: #dce9f0;
+  --block-speed-strength-ink: #163b52;
+  --match: #163b52;
+  --match-bg: #e3eef4;
   /* A five-step sequential ramp — the same lilac Grep uses for its age bands.
      Once the profile tiers; tiers are gone (no labels on athletes), and the
      ramp now only orders things like sprint splits. The two
      deep steps take a white label. */
-  --tier-1: #f1eaf8;
-  --tier-1-ink: #5c4474;
-  --tier-2: #e3d4f3;
-  --tier-2-ink: #4f3766;
-  --tier-3: #cfb5e8;
-  --tier-3-ink: #412d59;
-  --tier-4: #7f5fa8;
+  --tier-1: #e3eef4;
+  --tier-1-ink: #1f4e6b;
+  --tier-2: #cfe1eb;
+  --tier-2-ink: #163b52;
+  --tier-3: #a9c8d9;
+  --tier-3-ink: #0e2433;
+  --tier-4: #3b7393;
   --tier-4-ink: #ffffff;
-  --tier-5: #5c3f79;
+  --tier-5: #1f4e6b;
   --tier-5-ink: #ffffff;
   /* The same ramp as a mark — the squad's tier bar and its legend swatches.
      A chip has its label on it; a bar segment does not, so even the lightest
      step has to clear 2:1 against the card. */
-  --tier-1-mark: #b79fd6;
-  --tier-2-mark: #9f82c6;
-  --tier-3-mark: #8566b0;
-  --tier-4-mark: #6a4b94;
-  --tier-5-mark: #4b2f6e;
+  --tier-1-mark: #86aec6;
+  --tier-2-mark: #6e9fbb;
+  --tier-3-mark: #4f87a8;
+  --tier-4-mark: #3b7393;
+  --tier-5-mark: #1f4e6b;
   /* The spider chart: the athlete in the brand purple over a recessive grid,
      with the dashed ring at 5 — the norm's average — as the reference. */
-  --chart-grid: #e7e3dd;
-  --chart-reference: #8d7f97;
-  --chart-series: #67467e;
+  --chart-grid: #dce5ea;
+  --chart-reference: #71889a;
+  --chart-series: #1f4e6b;
+  /* The week's mix of work (week planner bar and legend): five hues far apart,
+     each at least 3:1 on the card so a thin segment still reads. */
+  --mix-strength: #7048a8;
+  --mix-power: #c2560f;
+  --mix-plyometric: #0f8a6c;
+  --mix-sprint: #2a6fd1;
+  --mix-prep: #8a8494;
 }
 
 /* Screen only, so printing stays light. Grounds step *up* in lightness as
@@ -222,30 +260,30 @@
 @media screen {
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --ink: #f2ecf5;
-    --ink-mid: #cdc1d6;
-    --ink-soft: #b1a4bb;
-    --ink-faint: #93869d;
-    --ink-disabled: #6f6379;
-    --paper: #0f0b13;
-    --paper-deep: #1e1724;
-    --paper-deep-hover: #282030;
-    --surface: #251d2d;
-    --surface-raised: #2e2538;
+    --ink: #eaf1f4;
+    --ink-mid: #c3d1d9;
+    --ink-soft: #9fb1bc;
+    --ink-faint: #7f929e;
+    --ink-disabled: #5a6c78;
+    --paper: #08141c;
+    --paper-deep: #12222d;
+    --paper-deep-hover: #1a2c38;
+    --surface: #132531;
+    --surface-raised: #1a2f3d;
     --glass: #ffffff14;
     --glass-soft: #ffffff12;
-    --line: #372c40;
-    --line-dashed: #4a3e55;
-    --line-strong: #52455d;
-    --line-stronger: #6d6178;
-    --line-hover: #5d4b6d;
-    --line-hover-strong: #735f86;
-    --hover-wash: #f2ecf50d;
-    --hover-wash-strong: #f2ecf514;
-    --scrim: rgb(6 3 9 / .66);
-    --accent: #c8a6e4;
-    --accent-fill: #7b5a97;
-    --accent-fill-hover: #8d6aa9;
+    --line: #223846;
+    --line-dashed: #2f4757;
+    --line-strong: #355062;
+    --line-stronger: #50697a;
+    --line-hover: #3a5a70;
+    --line-hover-strong: #4b6e86;
+    --hover-wash: #eaf1f40d;
+    --hover-wash-strong: #eaf1f414;
+    --scrim: rgb(2 8 12 / .66);
+    --accent: #8ec1e3;
+    --accent-fill: #2c6283;
+    --accent-fill-hover: #36719a;
     --mint: #1f3a2e;
     --blue: #1d3140;
     --danger: #ff8f86;
@@ -262,9 +300,9 @@
     --warn-bg-strong: #4a2a1d;
     --warn-line: #6b3e2a;
     --warn-ink: #ffb28a;
-    --chrome: #2b2036;
-    --on-chrome: #f2ecf5;
-    --on-chrome-soft: #d9cde2;
+    --chrome: #102a3b;
+    --on-chrome: #eaf1f4;
+    --on-chrome-soft: #c3d1d9;
     --tag-sky: #1d3140;
     --tag-sky-ink: #a8cfe6;
     --tag-apricot: #3b2419;
@@ -304,10 +342,11 @@
     --focus-wash: #2a1e20;
     --focus-line: #4a3a3a;
     --court-apricot: #c98567;
-    --court-line: #e9ddf7;
-    --profile-lime: #b0c072;
+    --art-ground: #102a3b;
+    --art-shape: #2c6283;
+    --art-best: #d4af5a;
     --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
-    --grep-line: #3f3449;
+    --grep-line: #2a4253;
     --q-speed: #d95926;
     --q-vertical: #9085e9;
     --q-single-leg: #d55181;
@@ -321,34 +360,61 @@
     --card-shadow: 0 1px 0 rgb(255 255 255 / .04) inset, 0 10px 28px -14px rgb(0 0 0 / .7);
     --apricot-wash: #ffb28a24;
     --apricot-wash-strong: #ffb28a2e;
-    --grep-lilac: #3a2d4a;
-    --lilac-hover: #45365a;
-    --lilac-wash: #2a2037;
-    --lilac-line: #5f4a78;
-    --lilac-edge: #7b5f99;
-    --lilac-ink: #e0cff5;
-    --lilac-ink-soft: #c8a6e4;
-    --signature-wash: #dbea9c2e;
-    --signature-wash-strong: #dbea9c42;
+    --grep-lilac: #1e3a4d;
+    --lilac-hover: #244559;
+    --lilac-wash: #16303f;
+    --lilac-line: #355c75;
+    --lilac-edge: #4a7896;
+    --lilac-ink: #d3e6f2;
+    --lilac-ink-soft: #8ec1e3;
+    --signature: #8ec1e3;
+    --signature-hover: #a6cfea;
+    --on-signature: #0e2433;
+    --signature-wash: #8ec1e326;
+    --signature-wash-strong: #8ec1e33d;
+    --mark: #d4af5a;
+    --best: #d4af5a;
+    --best-wash: #d4af5a26;
+    --phase-training: #1a2c38;
+    --phase-training-ink: #c3d1d9;
+    --phase-competition: #2e2a1c;
+    --phase-competition-ink: #e6d3a3;
+    --phase-break: #2e2226;
+    --phase-break-ink: #e8c9cf;
+    --block-absolute-strength: #8ec1e3;
+    --block-absolute-strength-ink: #0e2433;
+    --block-accelerative-strength: #4f87a8;
+    --block-accelerative-strength-ink: #08141c;
+    --block-strength-speed: #2c6283;
+    --block-strength-speed-ink: #eaf1f4;
+    --block-speed-strength: #1e3a4d;
+    --block-speed-strength-ink: #cfe3f0;
+    --match: #bcd7e8;
+    --match-bg: #162c3a;
     /* Dark flips the ramp's anchor: the higher tier is the brighter one. */
-    --tier-1: #2b2238;
-    --tier-1-ink: #d6c3ee;
-    --tier-2: #372849;
-    --tier-2-ink: #e0cff5;
-    --tier-3: #46325f;
-    --tier-3-ink: #efe2fb;
-    --tier-4: #7b5a97;
+    --tier-1: #162c3a;
+    --tier-1-ink: #bcd7e8;
+    --tier-2: #1e3a4d;
+    --tier-2-ink: #cfe3f0;
+    --tier-3: #2a4d66;
+    --tier-3-ink: #e3eff6;
+    --tier-4: #2c6283;
     --tier-4-ink: #ffffff;
-    --tier-5: #c8a6e4;
-    --tier-5-ink: #2e1b3d;
-    --tier-1-mark: #634f7b;
-    --tier-2-mark: #7d65a0;
-    --tier-3-mark: #9a80bf;
-    --tier-4-mark: #b89ddb;
-    --tier-5-mark: #dccaf5;
-    --chart-grid: #372c40;
-    --chart-reference: #93869d;
-    --chart-series: #c8a6e4;
+    --tier-5: #8ec1e3;
+    --tier-5-ink: #0e2433;
+    --tier-1-mark: #3e6077;
+    --tier-2-mark: #4f7894;
+    --tier-3-mark: #6893b0;
+    --tier-4-mark: #86aecb;
+    --tier-5-mark: #b5d3e8;
+    --chart-grid: #223846;
+    --chart-reference: #7f929e;
+    --chart-series: #8ec1e3;
+    --mix-strength: #b48ef0;
+    --mix-power: #f08a4b;
+    --mix-plyometric: #3fc6a0;
+    --mix-sprint: #6aa8f5;
+    --mix-prep: #9a93a3;
   }
 }
 
@@ -369,6 +435,8 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans-stack);
+  /* Every digit the same width, so columns of results line up (decision 26). */
+  font-variant-numeric: tabular-nums;
   text-rendering: optimizeLegibility;
 }
 button, input, textarea, select { font: inherit; }
@@ -378,7 +446,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
-::selection { background: var(--lime); color: var(--on-bright); }
+::selection { background: var(--grep-lilac); color: var(--ink); }
 .tabular { font-variant-numeric: tabular-nums; }
 @keyframes soft-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .soft-in { animation: soft-in 280ms ease-out both; }
@@ -387,8 +455,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
    Grep's shell, class for class, with the prefix renamed. A fix to one is
    almost always a fix to the other. */
 .spenst-logo { display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0; border-radius: 8px; color: inherit; }
-.spenst-logo-mark { width: 34px; height: 34px; flex-shrink: 0; }
-.spenst-logo-word { font-size: 26px; font-weight: 700; letter-spacing: -.055em; line-height: 1; }
+.spenst-logo-mark { width: 34px; height: 34px; flex-shrink: 0; color: var(--mark); }
+.spenst-logo-word { font-family: var(--font-display-stack); font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
 .spenst-shell { min-height: 100dvh; background: var(--paper); color: var(--ink); }
 .spenst-sidebar { display: none; }
 .spenst-content { min-width: 0; }
@@ -441,19 +509,98 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .spenst-auth-gate p { margin: 16px 0 24px; color: var(--grep-muted); line-height: 1.65; }
 
 /* ── Shared furniture ───────────────────────────────────────────────────── */
-.spenst-action { display: inline-flex; align-items: center; justify-content: center; gap: 18px; min-height: 48px; padding: 12px 22px; border-radius: 13px; background: var(--signature); color: var(--on-bright); font-size: 14px; font-weight: 600; transition: background .15s; }
+.spenst-action { display: inline-flex; align-items: center; justify-content: center; gap: 18px; min-height: 48px; padding: 12px 22px; border-radius: 13px; background: var(--signature); color: var(--on-signature); font-size: 14px; font-weight: 600; transition: background .15s; }
 .spenst-action:hover { background: var(--signature-hover); }
 .spenst-action:disabled { opacity: .55; cursor: not-allowed; }
 .spenst-action-secondary { background: var(--grep-lilac); color: var(--ink); gap: 14px; }
 .spenst-action-secondary:hover { background: var(--lilac-hover); }
+/* Win animations on the milestone buttons (`components/win.tsx`). Two beats:
+   `data-win="ready"` (hover, focus, a finger down) swaps the label for a
+   preview of what is about to happen; `data-win="win"` (the click) plays
+   the payoff, 850 ms, before the action runs. The label and the animation
+   share one grid cell, so the button fits the wider of the two. */
+.spenst-win { position: relative; overflow: hidden; isolation: isolate; }
+.spenst-win-stack { display: inline-grid; align-items: center; justify-items: center; gap: inherit; }
+.spenst-win-stack > * { grid-area: 1 / 1; }
+.spenst-win-label { display: inline-flex; align-items: center; justify-content: center; gap: inherit; transition: transform .25s cubic-bezier(.3,.7,.3,1), opacity .18s; }
+.spenst-win-fx { display: inline-flex; align-items: center; justify-content: center; gap: 8px; pointer-events: none; opacity: 0; transform: translateY(70%); transition: transform .25s cubic-bezier(.3,.7,.3,1), opacity .18s; white-space: nowrap; }
+.spenst-win[data-win] .spenst-win-label { transform: translateY(-170%); opacity: 0; }
+.spenst-win[data-win] .spenst-win-fx { transform: none; opacity: 1; }
+.spenst-win .win-text { font-weight: 700; }
+@keyframes win-flash { 0% { opacity: 0; transform: scale(.7); } 35% { opacity: 1; transform: none; } 100% { opacity: 0; transform: scale(1.15); } }
+@keyframes win-lean { 0% { opacity: 0; transform: translateX(-24px) skewX(-12deg); } 100% { opacity: 1; transform: none; } }
+@keyframes win-pop { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: none; } }
+
+/* Starting gun. Ready: “Ready?”, set back on its heels. Win: Set, then Go
+   with speed lines. */
+.spenst-win-gun .win-words { display: inline-grid; font-weight: 700; letter-spacing: .02em; }
+.spenst-win-gun .win-words b { grid-area: 1 / 1; justify-self: center; opacity: 0; }
+.spenst-win-gun .win-words b:nth-child(1) { opacity: 1; }
+.spenst-win-gun[data-win="ready"] .win-words b:nth-child(1) { animation: win-set 1.6s ease-in-out infinite; }
+.spenst-win-gun[data-win="win"] .win-words b:nth-child(1) { opacity: 0; }
+.spenst-win-gun[data-win="win"] .win-words b:nth-child(2) { animation: win-flash .3s ease-out; }
+.spenst-win-gun[data-win="win"] .win-words b:nth-child(3) { animation: win-lean .45s cubic-bezier(.2,1.4,.4,1) .28s both; }
+.spenst-win-gun .win-streak { position: absolute; left: 0; height: 2px; width: 60px; border-radius: 2px; background: currentColor; top: 34%; opacity: 0; }
+.spenst-win-gun .win-streak:nth-child(2) { top: 52%; width: 90px; }
+.spenst-win-gun .win-streak:nth-child(3) { top: 70%; width: 44px; }
+.spenst-win-gun[data-win="win"] .win-streak:nth-child(1) { animation: win-streak .5s ease-in .26s; }
+.spenst-win-gun[data-win="win"] .win-streak:nth-child(2) { animation: win-streak .45s ease-in .3s; }
+.spenst-win-gun[data-win="win"] .win-streak:nth-child(3) { animation: win-streak .55s ease-in .34s; }
+@keyframes win-set { 0%, 100% { transform: none; } 50% { transform: translateX(-2px) scaleX(.97); } }
+@keyframes win-streak { 0% { opacity: 0; transform: translateX(-100px); } 30% { opacity: .55; } 100% { opacity: 0; transform: translateX(340px); } }
+
+/* Import. Ready: three unlit rep lights and what the import holds. Win: the
+   lights come on one by one. */
+.spenst-win-lights .win-lights { display: inline-flex; gap: 6px; }
+.spenst-win-lights .win-lights i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; opacity: .55; }
+.spenst-win-lights[data-win="win"] .win-lights i { animation: win-light .22s both; }
+.spenst-win-lights[data-win="win"] .win-lights i:nth-child(2) { animation-delay: .17s; }
+.spenst-win-lights[data-win="win"] .win-lights i:nth-child(3) { animation-delay: .34s; }
+.spenst-win-lights[data-win="win"] .win-text { animation: win-lean .35s cubic-bezier(.2,1.4,.4,1) .45s both; }
+@keyframes win-light { 0% { opacity: .55; transform: scale(.8); } 60% { transform: scale(1.35); } 100% { opacity: 1; background: currentColor; transform: none; } }
+
+/* Season. Ready: the 52 weeks, empty. Win: they fill, shaded like a
+   season's blocks. */
+.spenst-win-weeks .win-weeks { display: inline-grid; grid-template-columns: repeat(26, 5px); grid-template-rows: repeat(2, 5px); gap: 2px; }
+.spenst-win-weeks .win-weeks i { border-radius: 1.5px; box-shadow: inset 0 0 0 1px currentColor; opacity: .4; }
+.spenst-win-weeks[data-win="win"] .win-weeks i { animation: win-week .16s both; animation-delay: calc(var(--i) * 9ms); }
+@keyframes win-week { 0% { opacity: .4; transform: scale(.4); } 100% { opacity: var(--o, 1); background: currentColor; transform: none; } }
+
+/* Publish. Ready: the send icon tilts to go, the squad waits. Win: it flies
+   off and the squad lights up. */
+.spenst-win-send .win-plane { transition: transform .3s cubic-bezier(.2,1.6,.4,1); }
+.spenst-win-send[data-win="ready"] .win-plane { transform: rotate(-12deg) translate(-2px, 1px); }
+.spenst-win-send[data-win="win"] .win-plane { animation: win-fly .5s cubic-bezier(.6,0,.4,1) both; }
+.spenst-win-send .win-heads { display: inline-flex; gap: 3px; }
+.spenst-win-send .win-heads i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor; opacity: .55; }
+.spenst-win-send[data-win="win"] .win-heads i { animation: win-head .18s both; animation-delay: calc(.2s + var(--i) * 60ms); }
+@keyframes win-fly { 0% { transform: rotate(-12deg); } 100% { opacity: 0; transform: translate(90px, -36px) rotate(-18deg) scale(.6); } }
+@keyframes win-head { to { opacity: 1; background: currentColor; } }
+
+/* New battery. Ready: an empty battery and how many tests it holds. Win:
+   it charges, the bolt pops. */
+.spenst-win-charge .win-cell { position: relative; display: inline-flex; gap: 2px; padding: 2px; border: 1.5px solid currentColor; border-radius: 4px; }
+.spenst-win-charge .win-cell::after { content: ""; position: absolute; right: -5px; top: 4px; width: 3px; height: 6px; border-radius: 0 2px 2px 0; background: currentColor; }
+.spenst-win-charge .win-cell i { width: 7px; height: 10px; border-radius: 1.5px; background: currentColor; opacity: 0; }
+.spenst-win-charge .win-bolt { opacity: 0; }
+.spenst-win-charge[data-win="win"] .win-cell i { animation: win-charge .12s both; animation-delay: calc(var(--i) * 100ms); }
+.spenst-win-charge[data-win="win"] .win-bolt { animation: win-pop .35s cubic-bezier(.2,1.8,.4,1) .5s both; }
+@keyframes win-charge { to { opacity: 1; } }
+
+/* Reduced motion: the preview still swaps in, without travel; the click
+   is not held (see win.tsx), so there is no payoff to show. */
+@media (prefers-reduced-motion: reduce) {
+  .spenst-win-label, .spenst-win-fx { transition: none; }
+  .spenst-win *, .spenst-win *::after { animation: none !important; }
+}
 .spenst-text-link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
 .spenst-button { letter-spacing: -.01em; box-shadow: none; }
 .spenst-page { width: 100%; max-width: 1264px; margin: 0 auto; padding: 36px 24px 64px; }
 .spenst-eyebrow { display: flex; align-items: center; gap: 9px; font-size: 10px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--ink-soft); }
-.spenst-eyebrow > .spenst-logo-mark { width: 17px; height: 17px; color: var(--ink); }
+.spenst-eyebrow > .spenst-logo-mark { width: 17px; height: 17px; color: var(--mark); }
 .spenst-page-heading { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 30px; margin-bottom: 28px; border-radius: 20px; border: 1px solid var(--grep-line); background: var(--surface);  box-shadow: var(--card-shadow); }
 .spenst-heading-copy { min-width: 0; }
-.spenst-page-heading h1 { margin: 10px 0 8px; font-size: 36px; font-weight: 650; letter-spacing: -.045em; line-height: 1.1; overflow-wrap: anywhere; }
+.spenst-page-heading h1 { margin: 10px 0 8px; font-family: var(--font-display-stack); font-size: 36px; font-weight: 600; letter-spacing: -.025em; line-height: 1.1; overflow-wrap: anywhere; }
 .spenst-page-description { color: var(--ink-soft); font-size: 15px; line-height: 1.5; }
 .spenst-page-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
 .spenst-segments { display: inline-flex; flex-wrap: wrap; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-deep); }
@@ -464,6 +611,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .spenst-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--line); }
 .spenst-section-heading h2 { font-size: 20px; font-weight: 650; letter-spacing: -.03em; }
 .spenst-section-heading p { margin-top: 5px; color: var(--ink-soft); font-size: 13px; }
+/* Help behind a question mark (components/help-tip.tsx): how-to text never
+   sits on the page. The button is small to look at and 44 px to hit. */
+.help-tip { position: relative; display: inline-flex; flex-shrink: 0; vertical-align: middle; }
+.help-tip-button { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; color: var(--ink-faint); transition: color .15s, background .15s; }
+.help-tip-button::before { content: ""; position: absolute; inset: -8px; }
+.help-tip-button:hover, .help-tip-button[aria-expanded="true"] { color: var(--ink); background: var(--hover-wash-strong); }
+.help-tip-bubble { position: absolute; z-index: 40; top: calc(100% + 8px); left: -6px; width: max-content; max-width: min(300px, 80vw); padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); box-shadow: var(--card-shadow); font-size: 13px; font-weight: 400; line-height: 1.5; letter-spacing: normal; text-transform: none; text-align: left; white-space: normal; color: var(--ink-mid); }
+.help-tip-bubble.is-end { left: auto; right: -6px; }
+.help-tip-bubble p + p { margin-top: 6px; }
+.help-tip-bubble strong { color: var(--ink); font-weight: 650; }
 .spenst-context-note { display: flex; align-items: flex-start; gap: 12px; padding: 17px 20px; background: var(--paper-deep); border-radius: 12px; color: var(--ink-mid); font-size: 13px; line-height: 1.6; }
 .spenst-context-note svg { flex-shrink: 0; margin-top: 2px; }
 .spenst-privacy-note { padding: 28px; border-radius: 18px 6px 18px 18px; background: var(--chrome); color: var(--on-chrome); }
@@ -482,7 +639,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .overview-greeting { color: var(--grep-muted); font-size: 22px; }
 .overview-welcome h1 { max-width: 56%; margin: 12px 0 28px; font-size: clamp(38px,3.4vw,58px); line-height: 1.12; letter-spacing: -.045em; font-weight: 700; }
 .overview-welcome .spenst-action { min-height: 60px; padding: 16px 30px; font-size: 18px; }
-.overview-art-crop { position: absolute; z-index: -1; pointer-events: none; right: 0; bottom: 0; width: 39%; height: 248px; overflow: hidden; container-type: size; border-radius: 160px 20px 20px 20px; background: var(--grep-lilac); }
+.overview-art-crop { position: absolute; z-index: -1; pointer-events: none; right: 0; bottom: 0; width: 39%; height: 248px; overflow: hidden; container-type: size; border-radius: 160px 20px 20px 20px; background: var(--art-ground); }
 /* A square as tall as the crop, the profile's centre at its middle. That
    centre sits 70% of the height in from the right edge, or mid-crop when the
    crop is narrower than that; the spokes run past the square to the crop. */
@@ -572,10 +729,10 @@ a.athlete-row:hover { background: var(--paper); }
 .chip-row button[aria-pressed="true"] { background: var(--grep-lilac); border-color: var(--lilac-line); color: var(--lilac-ink); box-shadow: inset 0 -2px var(--lilac-edge); }
 .chip-row button small { font-size: 11px; font-weight: 500; color: inherit; opacity: .75; }
 
-/* The leader wears the signature — Ballou's athletes see yellow when they
-   lead their group, and fight to keep it. */
+/* The leader wears brass, which means “best in the squad” and nothing else —
+   Ballou's athletes see yellow when they lead their group, and fight to keep it. */
 .board-row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; }
-.board-row.is-leader { background: var(--signature-wash); box-shadow: inset 4px 0 var(--signature); }
+.board-row.is-leader { background: var(--best-wash); box-shadow: inset 4px 0 var(--best); }
 .board-rank { width: 28px; flex-shrink: 0; text-align: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
 .board-row.is-leader .board-rank { color: var(--ink); }
 .board-name { min-width: 0; flex: 1; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
@@ -668,13 +825,14 @@ a.athlete-row:hover { background: var(--paper); }
   .spenst-main-with-mobile-nav { padding-bottom: 0; }
 }
 
-/* The welcome art: a spenstprofil drawn the way Grep draws its court — one
-   soft shape, pale lines over it, one dashed line, one small mark. The fill's
-   own stroke rounds its corners; grid lines keep their width at every size. */
-.overview-art .art-shape { fill: var(--profile-lime); stroke: var(--profile-lime); stroke-width: 12; stroke-linejoin: round; }
-.overview-art .art-grid { fill: none; stroke: var(--court-line); stroke-width: 1.5; opacity: .6; vector-effect: non-scaling-stroke; }
-.overview-art .art-best { fill: none; stroke: var(--court-line); stroke-width: 2.5; stroke-dasharray: 9 10; stroke-linecap: round; opacity: .86; }
-.overview-art .art-peak { fill: var(--accent); stroke: var(--court-line); stroke-width: 3; }
+/* The welcome art: a power profile on the night panel. One fjord shape with a
+   crisp edge — straight strokes and firm corners, like the rune — a faint
+   grid, the squad's best as a dashed brass ring, and a brass mark where the
+   profile reaches it. Lines keep their width at every size. */
+.overview-art .art-shape { fill: var(--art-shape); stroke: var(--art-edge); stroke-width: 2; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
+.overview-art .art-grid { fill: none; stroke: var(--art-line); stroke-width: 1; opacity: .16; vector-effect: non-scaling-stroke; }
+.overview-art .art-best { fill: none; stroke: var(--art-best); stroke-width: 1.75; stroke-dasharray: 6 7; stroke-linecap: butt; vector-effect: non-scaling-stroke; }
+.overview-art .art-peak { fill: var(--art-best); stroke: var(--art-ground); stroke-width: 3; }
 
 /* ── Program and session builder ─────────────────────────────────────────
    The builder is a working surface: calm, dense enough to see a whole
@@ -759,19 +917,24 @@ select.metric-input { width: auto; padding-right: 6px; }
 
 /* ── Season plan ─────────────────────────────────────────────────────────
    Ballou's yearly overview as a grid of weeks: months, week numbers, blocks
-   over phases, the throughline, and each week's sessions. Bars carry their
+   over phases, and each week's sessions. Bars carry their
    own label, so colour only reinforces what the text says. */
 .year-page { max-width: 1480px; }
 .year-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
-.year-hint { font-size: 12px; color: var(--ink-soft); }
 .year-card { overflow: hidden; }
 .year-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
-.year-grid { --year-label: 76px; --year-week: 24px; position: relative; display: grid; grid-template-rows: 26px 20px 40px 50px auto 42px; min-width: calc(var(--year-label) + var(--weeks, 52) * var(--year-week)); padding: 10px 12px 10px 0; user-select: none; }
+.year-grid { --year-label: 284px; --year-week: 24px; position: relative; display: grid; grid-template-rows: 26px 20px repeat(4, minmax(48px, auto)); min-width: calc(var(--year-label) + var(--weeks, 52) * var(--year-week)); padding: 10px 12px 10px 0; user-select: none; }
 .year-label { position: sticky; left: 0; z-index: 3; display: flex; align-items: center; padding: 0 8px 0 16px; background: var(--surface); font-size: 11px; font-weight: 700; color: var(--ink-soft); }
 .year-label-small { font-weight: 600; color: var(--ink-faint); }
+/* A row name with its key under it: only what this season uses. */
+.year-label-keyed { flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding-top: 9px; padding-bottom: 9px; padding-right: 16px; box-shadow: inset -1px 0 0 var(--line); font-size: 12px; color: var(--ink-mid); }
+.year-label-key { display: grid; grid-template-columns: repeat(2, max-content); gap: 3px 14px; font-size: 11px; font-weight: 500; line-height: 1.35; color: var(--ink-soft); }
+.year-label-key li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.year-label-mark { display: inline-grid; place-items: center; width: 10px; height: 10px; }
+.year-label-mark .year-swatch { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--line-strong); }
 .year-month { display: flex; align-items: flex-end; padding: 0 5px 5px; border-left: 1px solid var(--line); font-size: 11px; font-weight: 650; color: var(--ink-mid); text-transform: capitalize; white-space: nowrap; overflow: hidden; }
 .year-weekno { display: grid; place-items: center; font-size: 10px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.year-weekno.is-today { color: var(--warn-ink); font-weight: 700; }
+.year-weekno.is-today { color: var(--accent); font-weight: 700; }
 .year-cell { margin: 3px 0; border-left: 1px dashed var(--line); }
 .year-cell.is-free { cursor: crosshair; }
 .year-cell.is-free:hover { background: var(--hover-wash-strong); }
@@ -780,32 +943,32 @@ select.metric-input { width: auto; padding-right: 6px; }
 .year-bar:hover { filter: brightness(.97); }
 .year-bar > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .year-bar.is-phase { font-size: 13px; }
+/* Fitted titles (lib/fit-label.ts — the paddings there match these). */
+.year-bar-label[data-fit="wrap"] { white-space: normal; line-height: 16px; }
+.year-bar:has(> .year-bar-label[data-fit="vertical"]) { justify-content: center; padding: 6px 2px; }
+.year-bar-label[data-fit="vertical"] { white-space: normal; line-height: 16px; writing-mode: vertical-rl; transform: rotate(180deg); }
+.year-bar:has(> .year-bar-label[data-fit="short"]) { justify-content: center; padding: 0 2px; }
+.year-bar-label[data-fit="short"] { text-overflow: clip; }
 .year-bar.is-selected { outline: 2px solid var(--ink); outline-offset: 1px; }
-.year-bar.is-phase[data-kind="training"], .year-swatch[data-kind="training"] { background: var(--tag-band-1); color: var(--tag-band-1-ink); }
-.year-bar.is-phase[data-kind="competition"], .year-swatch[data-kind="competition"] { background: var(--tag-sky); color: var(--tag-sky-ink); }
-.year-bar.is-phase[data-kind="break"], .year-swatch[data-kind="break"] { background: var(--tag-rose); color: var(--tag-rose-ink); }
+.year-bar.is-phase[data-kind="training"], .year-swatch[data-kind="training"] { background: var(--phase-training); color: var(--phase-training-ink); }
+.year-bar.is-phase[data-kind="competition"], .year-swatch[data-kind="competition"] { background: var(--phase-competition); color: var(--phase-competition-ink); }
+.year-bar.is-phase[data-kind="break"], .year-swatch[data-kind="break"] { background: var(--phase-break); color: var(--phase-break-ink); }
 .year-bar.is-block[data-emphasis="none"] { background: var(--paper-deep); color: var(--ink-mid); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.year-bar.is-block[data-emphasis="absolute-strength"], .year-swatch[data-emphasis="absolute-strength"] { background: var(--tag-band-3); color: var(--tag-band-3-ink); }
-.year-bar.is-block[data-emphasis="accelerative-strength"], .year-swatch[data-emphasis="accelerative-strength"] { background: var(--tag-band-2); color: var(--tag-band-2-ink); }
-.year-bar.is-block[data-emphasis="strength-speed"], .year-swatch[data-emphasis="strength-speed"] { background: var(--tag-teal); color: var(--tag-teal-ink); }
-.year-bar.is-block[data-emphasis="speed-strength"], .year-swatch[data-emphasis="speed-strength"] { background: var(--signature); color: var(--on-bright); }
-/* Ballou's red line: the one thing that runs under every phase. */
-.year-throughline { display: flex; align-items: center; min-height: 28px; margin: 2px 0; background: linear-gradient(var(--accent), var(--accent)) center / 100% 2px no-repeat; }
-.year-throughline > span { position: sticky; z-index: 3; left: calc(var(--year-label) + 8px); padding: 3px 10px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); font-size: 11px; font-weight: 650; color: var(--accent); white-space: nowrap; }
-.year-week { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin: 2px 1px; border-radius: 6px; }
+.year-bar.is-block[data-emphasis="absolute-strength"], .year-swatch[data-emphasis="absolute-strength"] { background: var(--block-absolute-strength); color: var(--block-absolute-strength-ink); }
+.year-bar.is-block[data-emphasis="accelerative-strength"], .year-swatch[data-emphasis="accelerative-strength"] { background: var(--block-accelerative-strength); color: var(--block-accelerative-strength-ink); }
+.year-bar.is-block[data-emphasis="strength-speed"], .year-swatch[data-emphasis="strength-speed"] { background: var(--block-strength-speed); color: var(--block-strength-speed-ink); }
+.year-bar.is-block[data-emphasis="speed-strength"], .year-swatch[data-emphasis="speed-strength"] { background: var(--block-speed-strength); color: var(--block-speed-strength-ink); }
+.year-week { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin: 3px 1px; border-radius: 6px; }
 .year-week:hover { background: var(--hover-wash-strong); }
 .year-week.is-selected { background: var(--grep-lilac); }
-.year-week-flag { color: var(--warn-ink); }
+.year-week-flag { color: var(--ink-soft); }
 .year-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 18px; }
 .year-dots i, .year-dot { display: inline-block; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ink-faint); }
 .year-dots i.is-published, .year-dot.is-published { background: var(--accent-fill); box-shadow: none; }
 .year-dots small { font-size: 8px; line-height: 1; color: var(--ink-soft); }
-.year-today { z-index: 2; justify-self: center; width: 2px; border-radius: 2px; background: var(--warn-ink); opacity: .55; pointer-events: none; }
-.year-footer { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 28px; padding: 14px 18px 16px; border-top: 1px solid var(--line); }
-.year-throughline-field { display: grid; flex: 1 1 320px; gap: 6px; max-width: 560px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
-.year-legend { display: flex; flex: 1 1 320px; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px; font-size: 11px; color: var(--ink-mid); }
-.year-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.year-today { z-index: 2; justify-self: center; width: 2px; border-radius: 2px; background: var(--accent); opacity: .7; pointer-events: none; }
 .year-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.year-swatch-none { background: var(--paper-deep); box-shadow: inset 0 0 0 1px var(--line-strong); }
 
 .phase-overview-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; }
 .phase-overview-head h2 { font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
@@ -816,17 +979,16 @@ select.metric-input { width: auto; padding-right: 6px; }
 .phase-cards-frame[data-fade-start] .phase-cards { -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade)); mask-image: linear-gradient(to right, transparent, #000 var(--fade)); }
 .phase-cards-frame[data-fade-start][data-fade-end] .phase-cards { -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent); mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent); }
 .phase-cards { display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 2px; padding: 2px 2px 12px; align-items: stretch; }
-.phase-card { flex: 0 0 min(280px, 82%); scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px; border: 1px solid var(--grep-line); border-top: 5px solid var(--tag-band-2); border-radius: 16px; background: var(--surface); text-align: left; transition: border-color .15s; }
-.phase-card[data-kind="competition"] { border-top-color: var(--tag-sky-ink); }
-.phase-card[data-kind="break"] { border-top-color: var(--tag-rose-ink); }
-.phase-card[data-kind="training"] { border-top-color: var(--tag-band-1-ink); }
+.phase-card { flex: 0 0 min(280px, 82%); scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px; border: 1px solid var(--grep-line); border-top: 5px solid var(--phase-training-ink); border-radius: 16px; background: var(--surface); text-align: left; transition: border-color .15s; }
+.phase-card[data-kind="competition"] { border-top-color: var(--phase-competition-ink); }
+.phase-card[data-kind="break"] { border-top-color: var(--phase-break-ink); }
+.phase-card[data-kind="training"] { border-top-color: var(--phase-training-ink); }
 .phase-card:hover { border-left-color: var(--line-hover); border-right-color: var(--line-hover); border-bottom-color: var(--line-hover); }
 .phase-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .phase-card-head strong { font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
 .phase-card small { font-size: 12px; color: var(--ink-soft); }
 .phase-card-focus { font-size: 14px; font-weight: 600; line-height: 1.45; }
 .phase-card ul { padding-left: 18px; list-style: disc; font-size: 13px; line-height: 1.6; color: var(--ink-mid); }
-.phase-card em { font-size: 12px; color: var(--accent); }
 
 .period-panel { overflow: hidden; }
 .period-panel { position: relative; }
@@ -853,18 +1015,18 @@ select.metric-input { width: auto; padding-right: 6px; }
 .week-summary { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .week-summary.is-empty { color: var(--ink-faint); }
 .week-summary.is-compact { display: grid; gap: 4px; font-size: 11px; }
-.mix-bar { display: inline-flex; gap: 1px; width: 84px; height: 8px; overflow: hidden; border-radius: 999px; background: var(--paper-deep); }
-.week-summary.is-compact .mix-bar { width: 100%; max-width: 120px; height: 6px; }
+.mix-bar { display: inline-flex; gap: 2px; width: 96px; height: 10px; overflow: hidden; border-radius: 999px; background: var(--paper-deep); }
+.week-summary.is-compact .mix-bar { width: 100%; max-width: 120px; height: 8px; }
 .mix-bar i { display: block; min-width: 3px; }
-.mix-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--ink-soft); }
-.mix-legend li { display: inline-flex; align-items: center; gap: 5px; }
-.mix-legend i { display: inline-block; width: 10px; height: 6px; border-radius: 999px; }
+.mix-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-soft); }
+.mix-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.mix-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
 
 .day-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .day-cell { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 108px; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: default; transition: border-color .15s, background .15s; }
 .day-cell:hover { border-color: var(--line-hover-strong); }
 .day-cell.is-active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.day-cell.is-today .day-name b { background: var(--signature); color: var(--on-bright); }
+.day-cell.is-today .day-name b { background: var(--signature); color: var(--on-signature); }
 .day-cell.has-match { background: var(--paper-deep); }
 .day-cell.is-drop-target { border-color: var(--accent); background: var(--signature-wash); }
 .day-cell.is-compact { min-height: 84px; }
@@ -873,8 +1035,8 @@ select.metric-input { width: auto; padding-right: 6px; }
 .day-name b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 1px; padding: 0 3px; border-radius: 999px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 .day-cell.is-compact .day-name { font-size: 0; }
 .day-cell.is-compact .day-name b { font-size: 11px; }
-.md-label { display: inline-flex; align-items: center; height: 18px; padding: 0 5px; border-radius: 5px; background: var(--tag-sky); color: var(--tag-sky-ink); font-size: 10px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.md-label.is-match { background: var(--tag-sky-ink); color: var(--surface); }
+.md-label { display: inline-flex; align-items: center; height: 18px; padding: 0 5px; border-radius: 5px; background: var(--match-bg); color: var(--match); font-size: 10px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.md-label.is-match { background: var(--match); color: var(--surface); }
 .md-label.is-large { height: 26px; padding: 0 9px; border-radius: 8px; font-size: 12px; align-self: flex-end; margin-bottom: 4px; }
 .day-add { display: grid; place-items: center; width: 24px; height: 24px; margin-left: auto; border-radius: 7px; color: var(--ink-soft); opacity: 0; transition: opacity .12s, background .12s; }
 .day-cell:hover .day-add, .day-cell.is-active .day-add, .day-add:focus-visible, .day-add[aria-expanded="true"] { opacity: 1; }
@@ -893,15 +1055,15 @@ select.metric-input { width: auto; padding-right: 6px; }
 .slot-badge { flex-shrink: 0; padding: 0 4px; border-radius: 4px; background: var(--tag-gold); color: var(--tag-gold-ink); font-size: 9px; font-weight: 800; line-height: 15px; }
 .chip-exercises { display: grid; gap: 1px; margin-top: 3px; padding-top: 3px; border-top: 1px solid var(--line); }
 .chip-exercises li { overflow: hidden; font-size: 11px; color: var(--ink-mid); text-overflow: ellipsis; white-space: nowrap; }
-.match-chip { align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid var(--tag-sky-ink); background: var(--tag-sky); color: var(--tag-sky-ink); }
-.match-chip small { color: var(--tag-sky-ink); }
-.match-chip.is-priority { box-shadow: inset 0 0 0 1.5px var(--tag-sky-ink); }
+.match-chip { align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid var(--match); background: var(--match-bg); color: var(--match); }
+.match-chip small { color: var(--match); }
+.match-chip.is-priority { box-shadow: inset 0 0 0 1.5px var(--match); }
 .match-chip > svg { flex-shrink: 0; }
 .match-chip > span > strong, .match-chip > span > small { display: block; }
 .day-drop-zones { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-rows: 1fr 1.4fr 1fr; overflow: hidden; border-radius: 11px; }
 .day-drop-zones span { display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); background: var(--surface); opacity: .92; }
 .day-drop-zones span + span { border-top: 1px dashed var(--line-dashed); }
-.day-drop-zones span.is-over { background: var(--signature); color: var(--on-bright); opacity: 1; }
+.day-drop-zones span.is-over { background: var(--signature); color: var(--on-signature); opacity: 1; }
 
 .planner-menu { position: fixed; z-index: 60; display: grid; width: 240px; padding: 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-raised); box-shadow: var(--shadow); }
 .planner-menu-item { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 10px; border-radius: 9px; font-size: 14px; font-weight: 600; text-align: left; }
@@ -910,8 +1072,7 @@ select.metric-input { width: auto; padding-right: 6px; }
 .planner-menu-item:disabled { color: var(--ink-faint); cursor: not-allowed; }
 .planner-menu-item:disabled:hover { background: none; }
 .planner-toast { position: fixed; left: 50%; bottom: 22px; z-index: 70; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--ink); color: var(--surface); box-shadow: var(--shadow); font-size: 14px; transform: translateX(-50%); }
-.planner-toast button { min-height: 32px; padding: 0 12px; border-radius: 9px; background: var(--signature); color: var(--on-bright); font-size: 13px; font-weight: 700; }
-.planner-hint { padding: 12px 22px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-soft); }
+.planner-toast button { min-height: 32px; padding: 0 12px; border-radius: 9px; background: var(--signature); color: var(--on-signature); font-size: 13px; font-weight: 700; }
 .planner-empty { padding: 18px 22px; font-size: 14px; color: var(--ink-soft); }
 .session-preview { position: fixed; z-index: 60; max-height: 60vh; overflow: auto; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-raised); box-shadow: var(--shadow); pointer-events: none; }
 .session-preview-title { font-size: 14px; font-weight: 700; }
@@ -972,12 +1133,12 @@ select.metric-input { width: auto; padding-right: 6px; }
 @keyframes drawer-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .session-drawer { animation: none; } }
 
-.year-matches { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; margin: 2px 1px; border-radius: 6px; }
+.year-matches { display: flex; flex-wrap: wrap; align-self: center; align-items: center; justify-content: center; gap: 2px; min-height: 24px; margin: 2px 1px; border-radius: 6px; }
 button.year-matches:hover { background: var(--hover-wash-strong); }
-.year-matches.is-congested, .year-swatch-congested { background: var(--tag-rose); }
+.year-matches.is-congested, .year-swatch-congested { background: var(--warn-bg-strong); }
 .year-matches.is-selected { outline: 2px solid var(--ink); outline-offset: -1px; }
-.year-match { display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: var(--tag-sky-ink); }
-.year-match-star { color: var(--tag-sky-ink); fill: var(--tag-sky-ink); }
+.year-match { display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: var(--match); }
+.year-match-star { color: var(--match); fill: var(--match); }
 
 .builder-context { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--ink-mid); }
 .variants { display: grid; gap: 10px; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 12px; }
@@ -995,7 +1156,9 @@ button.year-matches:hover { background: var(--hover-wash-strong); }
 
 
 @media (max-width: 639px) {
-  .year-grid { --year-label: 60px; --year-week: 22px; }
+  .year-grid { --year-label: 160px; --year-week: 22px; }
+  .year-label-keyed { padding-right: 10px; }
+  .year-label-key { grid-template-columns: max-content; }
   .year-label { padding-left: 10px; }
   .week-strip { padding: 12px 14px 14px; }
   .week-copy { margin-left: 0; }
@@ -1004,7 +1167,7 @@ button.year-matches:hover { background: var(--hover-wash-strong); }
   .day-cell { min-height: 0; }
   .day-cell.is-empty { flex-direction: row; padding: 2px 6px; }
   .day-cell.is-empty .day-head { flex: 1; }
-  .period-view-bar, .planner-hint, .planner-empty { padding-left: 16px; padding-right: 16px; }
+  .period-view-bar, .planner-empty { padding-left: 16px; padding-right: 16px; }
   .period-view-bar .mix-legend { margin-left: 0; }
   .calendar-grid { padding: 4px 14px 16px; }
   .calendar-row.is-head { display: none; }
@@ -1442,8 +1605,7 @@ button.year-matches:hover { background: var(--hover-wash-strong); }
 .tr-head-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
 .tr-head-actions .spenst-action { min-height: 44px; padding: 0 16px; font-size: 14px; }
 .tr-entry { margin: 16px 20px 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-raised); overflow: hidden; }
-.tr-entry-note { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper); font-size: 13px; line-height: 1.5; color: var(--ink-mid); }
-.tr-entry-note svg { flex-shrink: 0; margin-top: 2px; }
+.tr-entry-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 6px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-soft); }
 .tr-entry .entry-row { padding: 10px 16px; }
 .entry-row.is-locked { min-height: 60px; }
 .entry-saved { display: inline-flex; gap: 14px; font-size: 16px; font-weight: 650; }
@@ -1451,15 +1613,6 @@ button.year-matches:hover { background: var(--hover-wash-strong); }
 .entry-edit { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
 .entry-edit:hover { background: var(--hover-wash-strong); color: var(--ink); }
 @media (max-width: 639px) { .tr-entry { margin: 14px 14px 0; } .tr-head-actions { justify-content: flex-start; } }
-
-/* A help tip: the “?” and its explanation, opened in place (components/ui.tsx). */
-.help-tip { position: relative; display: inline-block; vertical-align: middle; }
-.help-tip summary { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: var(--ink-soft); cursor: pointer; list-style: none; }
-.help-tip summary::-webkit-details-marker { display: none; }
-.help-tip summary:hover, .help-tip[open] summary { background: var(--hover-wash); color: var(--ink); }
-.help-tip-body { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: min(320px, 80vw); padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); box-shadow: 0 12px 30px -16px rgb(0 0 0 / .45); font-size: 12px; font-weight: 400; line-height: 1.55; color: var(--ink-mid); }
-.help-tip-body p + p { margin-top: 6px; }
-.help-tip-body strong { color: var(--ink); font-weight: 650; }
 
 /* The best attempt's every column, beside a result (decision 27). */
 .attempt-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 16px; margin-top: 12px; font-size: 12px; }

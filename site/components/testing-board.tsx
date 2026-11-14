@@ -1,20 +1,21 @@
 "use client";
 
-import { ArrowRight, CalendarPlus, Check, ChevronDown, ClipboardList, Info, PenLine, Upload } from "lucide-react";
+import { ArrowRight, CalendarPlus, Check, ChevronDown, ClipboardList, PenLine, Pencil, Trash2, Upload } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSpenst } from "./app-provider";
 import { AppShell } from "./app-shell";
 import { PageHeading } from "./page-heading";
-import { Button, EmptyState, inputClass } from "./ui";
+import { Button, EmptyState, inputClass, Modal, textareaClass } from "./ui";
 import { batteryFor, deviceLabels, familyOf, TESTS, type TestDefinition, type TestKey } from "@/lib/power-profile";
-import { teamAthletes, testDayProgress } from "@/lib/squad";
+import { seasonLabel, teamAthletes, testDayProgress, testDaysBySeason } from "@/lib/squad";
 import type { Athlete, Side, TestDay, TestResult } from "@/lib/types";
 import { cn, formatDay, localDateKey, parseDecimal } from "@/lib/utils";
-import Link from "next/link";
 import { TestResults } from "./test-results";
 import { testAttempts } from "@/lib/ovr-data";
 import { suggestMapping, type OvrRow } from "@/lib/ovr-import";
+import { HelpTip } from "./help-tip";
+import Link from "next/link";
 
 const numberText = (value: number | undefined) => value === undefined ? "" : String(value);
 
@@ -31,24 +32,16 @@ export function TestingBoard() {
   const squad = useMemo(() => teamAthletes(athletes, currentTeam?.id), [athletes, currentTeam?.id]);
 
   return <AppShell><div className="spenst-page">
-    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Testing" description="Results come from the OVR export: import it, then pick a test day and a test. Only tape and My Jump tests are typed in here." actions={<Link href="/testing/import" className="spenst-action spenst-action-secondary"><Upload size={17} />Import from OVR</Link>} />
+    <PageHeading eyebrow={currentTeam?.name ?? "Röskr"} title="Testing" description="Results come from the OVR export: import it, then pick a test day and a test. Only tape and My Jump tests are typed in here." actions={<Link href="/testing/import" className="spenst-action spenst-action-secondary"><Upload size={17} />Import from OVR</Link>} />
     {!workspaceLoaded ? <p role="status" className="spenst-loading">Loading test days …</p> : !currentTeam
       ? <EmptyState icon={<ClipboardList size={24} />} title="No teams yet" body="When you are added to a team, you can record tests here." />
       : <div className="testing-layout">
         <aside className="grid gap-4">
           <NewTestDay onCreate={async (input) => { const id = await createTestDay(input); router.replace(`/testing?day=${id}`); }} />
-          <nav aria-label="Test days" className="test-day-list">
-            {teamDays.map((candidate) => {
-              const progress = testDayProgress(candidate, athletes, results);
-              return <button key={candidate.id} type="button" className="test-day-item" aria-current={candidate.id === day?.id ? "true" : undefined} onClick={() => router.replace(`/testing?day=${candidate.id}`)}>
-                <span className="test-day-date"><span>{formatDay(candidate.heldOn, { month: "short" })}</span><strong>{formatDay(candidate.heldOn, { day: "numeric" })}</strong></span>
-                <span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold">{candidate.title}</strong><small className="block text-xs text-[var(--ink-soft)]">{progress.tested} of {progress.squad} tested</small></span>
-              </button>;
-            })}
-          </nav>
+          <TestDayList days={teamDays} currentId={day?.id ?? null} athletes={athletes} results={results} onSelect={(id) => router.replace(`/testing?day=${id}`)} />
         </aside>
         {!day || !activeKey ? <EmptyState icon={<CalendarPlus size={24} />} title="No test days yet" body="Create a test day, then record the results one test at a time." />
-          : <DayBoard day={day} squad={squad} results={results} battery={battery} activeKey={activeKey} onSelectTest={setTestKey} />}
+          : <DayBoard day={day} squad={squad} results={results} battery={battery} activeKey={activeKey} onSelectTest={setTestKey} onDeleted={() => router.replace("/testing")} />}
       </div>}
   </div></AppShell>;
 }
@@ -72,7 +65,7 @@ function NewTestDay({ onCreate }: { onCreate(input: { title: string; heldOn: str
   </form>;
 }
 
-function DayBoard({ day, squad, results, battery, activeKey, onSelectTest }: { day: TestDay; squad: Athlete[]; results: TestResult[]; battery: readonly TestKey[]; activeKey: TestKey; onSelectTest(key: TestKey): void }) {
+function DayBoard({ day, squad, results, battery, activeKey, onSelectTest, onDeleted }: { day: TestDay; squad: Athlete[]; results: TestResult[]; battery: readonly TestKey[]; activeKey: TestKey; onSelectTest(key: TestKey): void; onDeleted(): void }) {
   const test: TestDefinition = TESTS[activeKey];
   const dayResults = results.filter((result) => result.testDayId === day.id);
   const entered = (key: string) => new Set(dayResults.filter((result) => result.testKey === key).map((result) => result.athleteId)).size;
@@ -90,10 +83,13 @@ function DayBoard({ day, squad, results, battery, activeKey, onSelectTest }: { d
   // OVR measures it: read, never typed. Tape and My Jump tests are still entered by hand.
   const fromOvr = test.device === "ovr-sprint" || test.device === "ovr-velocity" || test.device === "ovr-jump";
   return <section className="grid grid-cols-[minmax(0,1fr)] gap-4">
-    <div className="spenst-card p-5">
-      <h2 className="text-xl font-semibold tracking-[-.03em]">{day.title}</h2>
-      <p className="mt-1 text-sm text-[var(--ink-soft)]">{formatDay(day.heldOn, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
-      {day.notes && <p className="mt-3 text-sm leading-6 text-[var(--ink-mid)]">{day.notes}</p>}
+    <div className="spenst-card flex items-start gap-4 p-5">
+      <div className="min-w-0 flex-1">
+        <h2 className="text-xl font-semibold tracking-[-.03em]">{day.title}</h2>
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">{formatDay(day.heldOn, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+        {day.notes && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[var(--ink-mid)]">{day.notes}</p>}
+      </div>
+      <EditTestDay key={day.id} day={day} resultCount={dayResults.length} onDeleted={onDeleted} />
     </div>
     <div ref={top} className="scroll-mt-24 sm:scroll-mt-4"><TestPicker battery={battery} activeKey={activeKey} squadSize={squad.length} entered={entered} onSelect={onSelectTest} /></div>
     {fromOvr
@@ -106,6 +102,84 @@ function DayBoard({ day, squad, results, battery, activeKey, onSelectTest }: { d
       <ArrowRight size={18} />
     </button>}
   </section>;
+}
+
+/**
+ * Test days by season. The season being looked at stays open; older ones fold
+ * into one line each, so years of testing stay a short list.
+ */
+function TestDayList({ days, currentId, athletes, results, onSelect }: { days: TestDay[]; currentId: string | null; athletes: Athlete[]; results: TestResult[]; onSelect(id: string): void }) {
+  const groups = useMemo(() => testDaysBySeason(days), [days]);
+  const current = days.find((day) => day.id === currentId);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  const isOpen = (season: string) => season === groups[0]?.season || (current && season === seasonLabel(current.heldOn)) || opened.has(season);
+  const item = (candidate: TestDay) => {
+    const progress = testDayProgress(candidate, athletes, results);
+    return <button key={candidate.id} type="button" className="test-day-item" aria-current={candidate.id === currentId ? "true" : undefined} onClick={() => onSelect(candidate.id)}>
+      <span className="test-day-date"><span>{formatDay(candidate.heldOn, { month: "short" })}</span><strong>{formatDay(candidate.heldOn, { day: "numeric" })}</strong></span>
+      <span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold">{candidate.title}</strong><small className="block text-xs text-[var(--ink-soft)]">{progress.tested} of {progress.squad} tested</small></span>
+    </button>;
+  };
+  if (groups.length < 2) return <nav aria-label="Test days" className="test-day-list">{days.map(item)}</nav>;
+  return <nav aria-label="Test days" className="test-day-list">
+    {groups.map((group) => {
+      const open = Boolean(isOpen(group.season));
+      return <section key={group.season} className="test-day-season">
+        <button type="button" className="test-day-season-toggle" aria-expanded={open} onClick={() => setOpened((now) => { const next = new Set(now); if (next.has(group.season)) next.delete(group.season); else next.add(group.season); return next; })} disabled={open && !opened.has(group.season)}>
+          <span>Season {group.season}</span>
+          <small className="tabular">{group.days.length} {group.days.length === 1 ? "test day" : "test days"}</small>
+          <ChevronDown size={16} className="test-day-season-chevron" />
+        </button>
+        {open && <div className="test-day-list">{group.days.map(item)}</div>}
+      </section>;
+    })}
+  </nav>;
+}
+
+/** Rename, re-date or add notes; an admin can delete the day and its results. */
+function EditTestDay({ day, resultCount, onDeleted }: { day: TestDay; resultCount: number; onDeleted(): void }) {
+  const { currentTeam, updateTestDay, deleteTestDay } = useSpenst();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({ title: day.title, heldOn: day.heldOn, notes: day.notes });
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const canDelete = currentTeam?.role === "admin";
+  const start = () => { setDraft({ title: day.title, heldOn: day.heldOn, notes: day.notes }); setProblem(null); setConfirming(false); setOpen(true); };
+  const close = () => { setOpen(false); setConfirming(false); setProblem(null); };
+  async function attempt(action: () => Promise<void>, fallback: string) {
+    setBusy(true); setProblem(null);
+    try { await action(); } catch (caught) { setProblem(caught instanceof Error ? caught.message : fallback); } finally { setBusy(false); }
+  }
+  return <>
+    <Button variant="secondary" size="sm" onClick={start} aria-label={`Edit ${day.title}`}><Pencil size={15} />Edit</Button>
+    <Modal open={open} title="Edit test day" onClose={close}>
+      <form className="grid gap-4" onSubmit={(event) => {
+        event.preventDefault();
+        if (!draft.heldOn) return;
+        void attempt(async () => { await updateTestDay(day.id, draft); close(); }, "The changes weren’t saved. Try again.");
+      }}>
+        <label className="grid gap-1.5 text-sm font-semibold">Name<input className={inputClass} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} maxLength={80} placeholder="E.g. Autumn test" /></label>
+        <label className="grid gap-1.5 text-sm font-semibold">
+          <span className="flex items-center gap-1.5">Date<HelpTip label="About the date">OVR results show on the test day with the same date. Moving the day moves which OVR sessions it shows; typed results stay with it.</HelpTip></span>
+          <input className={inputClass} type="date" value={draft.heldOn} onChange={(event) => setDraft({ ...draft, heldOn: event.target.value })} required />
+        </label>
+        <label className="grid gap-1.5 text-sm font-semibold">Notes<textarea className={textareaClass} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Conditions, warm-up, who was missing" /></label>
+        {problem && <p role="alert" className="text-sm text-[var(--danger)]">{problem}</p>}
+        <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close}>Cancel</Button><Button type="submit" disabled={busy}>{busy ? "Saving …" : "Save"}</Button></div>
+      </form>
+      {canDelete && <section className="mt-8 grid gap-3 border-t border-[var(--line)] pt-5" aria-label="Delete the test day">
+        {!confirming
+          ? <div><Button type="button" variant="danger" onClick={() => setConfirming(true)}><Trash2 size={16} />Delete test day</Button></div>
+          : <>
+            <p className="text-sm">{resultCount
+              ? `This deletes “${day.title}” and its ${resultCount} ${resultCount === 1 ? "result" : "results"}. It can’t be undone. Raw OVR data is kept, and a new import can bring OVR results back.`
+              : `This deletes “${day.title}”. Nothing has been recorded on it.`}</p>
+            <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setConfirming(false)}>Keep</Button><Button type="button" variant="danger" disabled={busy} onClick={() => void attempt(async () => { await deleteTestDay(day.id); close(); onDeleted(); }, "The test day wasn’t deleted. Try again.")}><Trash2 size={16} />{resultCount ? "Delete for good" : "Delete"}</Button></div>
+          </>}
+      </section>}
+    </Modal>
+  </>;
 }
 
 /**
@@ -163,7 +237,7 @@ function TypedTest({ day, test, squad, results }: { day: TestDay; test: TestDefi
   const hasAny = results.some((result) => result.testKey === test.key);
   const [recording, setRecording] = useState(!hasAny);
   const entry = <div className="tr-entry">
-    <p className="tr-entry-note"><Info size={16} />{deviceLabels[test.device]} · {test.unit === "cm" ? "centimetres" : test.unit === "m" ? "metres" : test.unit === "s" ? "seconds" : test.unit}{test.sided ? " · one result per leg" : ""} · the best of 2–3 attempts. Saved results are locked — use Edit to change one.</p>
+    <div className="tr-entry-note"><span>{deviceLabels[test.device]} · {test.unit === "cm" ? "centimetres" : test.unit === "m" ? "metres" : test.unit === "s" ? "seconds" : test.unit}{test.sided ? " · one result per leg" : ""}</span><HelpTip label="How to type in results" align="end">Type the best of 2–3 attempts. Saved results are locked — use Edit to change one.</HelpTip></div>
     <div className="spenst-rows">{squad.map((athlete) => <EntryRow key={athlete.id} athlete={athlete} day={day} test={test} results={results} />)}</div>
   </div>;
   return <TestResults test={test} squad={squad} results={results} metrics={[]} attempts={[]} entry={entry} recording={recording} onRecord={setRecording} />;

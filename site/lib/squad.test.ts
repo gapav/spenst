@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { demoAthletes, demoMeasurements, demoResults, demoTestDays } from "./demo-data";
 import { batteryFor, testDefinition } from "./power-profile";
 import { demoTeams } from "./demo-data";
-import { asymmetryFlags, latestMeasurement, summarizeSquad, teamAthletes, testDayProgress } from "./squad";
+import { asymmetryFlags, latestMeasurement, seasonLabel, summarizeSquad, teamAthletes, testDayProgress, testDaysBySeason } from "./squad";
 
 const asOf = new Date("2026-10-07T12:00:00Z");
 const summaries = (teamId: string) => summarizeSquad({ athletes: teamAthletes(demoAthletes, teamId), results: demoResults, testDays: demoTestDays, measurements: demoMeasurements, asOf, battery: batteryFor(demoTeams.find((team) => team.id === teamId)).tests });
@@ -48,5 +48,19 @@ describe("squad selectors", () => {
   it("reports how far a test day has come", () => {
     const october = demoTestDays.find((day) => day.id === "day-j15-oct");
     expect(october && testDayProgress(october, demoAthletes, demoResults)).toEqual({ tested: 8, squad: 8 });
+  });
+});
+
+describe("test days by season", () => {
+  it("starts a season on 1 August", () => {
+    expect(seasonLabel("2026-07-31")).toBe("2025/26");
+    expect(seasonLabel("2026-08-01")).toBe("2026/27");
+    expect(seasonLabel("2099-12-01")).toBe("2099/00");
+  });
+
+  it("groups newest season and newest day first", () => {
+    const days = [{ id: "a", heldOn: "2026-04-15" }, { id: "b", heldOn: "2026-11-14" }, { id: "c", heldOn: "2026-08-04" }, { id: "d", heldOn: "2026-10-06" }];
+    expect(testDaysBySeason(days).map((group) => [group.season, group.days.map((day) => day.id)])).toEqual([["2026/27", ["b", "d", "c"]], ["2025/26", ["a"]]]);
+    expect(testDaysBySeason([])).toEqual([]);
   });
 });

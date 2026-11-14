@@ -7,7 +7,6 @@ import { AppShell } from "./app-shell";
 import { PageHeading } from "./page-heading";
 import { SeasonTimeline, type TimelineSelection } from "./season-timeline";
 import { CalendarGrid, MixLegend, PlannerProvider, ProgressionTable, WeekStrip } from "./week-planner";
-import { TextCommitField } from "./target-field";
 import { Button, EmptyState, Modal, Tag, inputClass, type TagTone } from "./ui";
 import {
   addDays, isoWeek, mondayOf, noteLines, overlapsOnLevel, periodAt, periodEndsOn, periodKindLabels, periodLevelLabels, seasonEndsOn, seasonWeeks,
@@ -16,6 +15,9 @@ import {
 import type { TrainingSession } from "@/lib/types";
 import { VELOCITY_ZONES, type ZoneId } from "@/lib/vbt";
 import { cn, countLabel, formatDay, localDateKey } from "@/lib/utils";
+import { HelpTip } from "./help-tip";
+import { WinButton } from "./win";
+import { teamAthletes } from "@/lib/squad";
 
 const kindTone: Record<PeriodKind, TagTone> = { training: "band1", competition: "sky", break: "rose" };
 const shortDay = (dateKey: string) => formatDay(dateKey, { day: "numeric", month: "short" });
@@ -23,7 +25,7 @@ const shortDay = (dateKey: string) => formatDay(dateKey, { day: "numeric", month
 type DialogState = { mode: "create"; draft: Omit<Period, "id"> } | { mode: "edit"; draft: Period } | null;
 
 export function SeasonPlanScreen() {
-  const { currentTeam, seasons, periods, weekNotes, sessions, matches, workspaceLoaded, createSeason, updateSeason, createPeriod, updatePeriod, deletePeriod } = useSpenst();
+  const { currentTeam, seasons, periods, weekNotes, sessions, matches, workspaceLoaded, createSeason, createPeriod, updatePeriod, deletePeriod } = useSpenst();
   const [today, setToday] = useState<string | null>(null);
   useEffect(() => { const tick = () => setToday(localDateKey(new Date())); tick(); }, []);
   const teamSeasons = useMemo(() => seasons.filter((season) => season.teamId === currentTeam?.id).sort((a, b) => b.startsOn.localeCompare(a.startsOn)), [seasons, currentTeam?.id]);
@@ -66,29 +68,22 @@ export function SeasonPlanScreen() {
 
     {!season ? <NewSeason onCreate={async (input) => { const id = await createSeason(input); setChosenSeasonId(id); }} today={today} /> : <>
       <div className="year-toolbar">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => openFirstFree(season, seasonPeriods, "phase", openCreate)}><Plus size={15} />New phase</Button>
           <Button variant="secondary" size="sm" onClick={() => openFirstFree(season, seasonPeriods, "block", openCreate)}><Plus size={15} />New block</Button>
+          <HelpTip label="How the season plan works"><span className="hidden sm:inline">Drag across empty weeks to add a phase or block.</span><span className="sm:hidden">Tap an empty week to add a phase or block.</span> Open a block or a week to plan it day by day.</HelpTip>
         </div>
-        <p className="year-hint"><span className="hidden sm:inline">Drag across empty weeks to add a phase or block.</span><span className="sm:hidden">Tap an empty week to add a phase or block.</span> Open a block or a week to plan it day by day.</p>
       </div>
 
       <section className="spenst-card year-card" aria-label="Season timeline">
         <SeasonTimeline season={season} periods={seasonPeriods} weekNotes={weekNotes.filter((note) => note.seasonId === season.id)} sessions={teamSessions} matches={teamMatches} today={today} selection={selection} onSelect={setSelection} onCreate={openCreate} />
-        <div className="year-footer">
-          <label className="year-throughline-field">
-            <span>Throughline</span>
-            <TextCommitField label="Throughline" className={inputClass} value={season.throughline} placeholder="What happens in every phase, e.g. “Speed-strength every week”" onCommit={(throughline) => void updateSeason(season.id, { throughline: throughline.trim() }).catch(() => undefined)} />
-          </label>
-          <YearLegend />
-        </div>
       </section>
 
       <div className="mt-5">
         <PlannerProvider season={season} periods={seasonPeriods} sessions={teamSessions} matches={teamMatches} today={today}>
           {selectedPeriod ? <PeriodPanel key={selectedPeriod.id} period={selectedPeriod} sessions={teamSessions} onEdit={() => setDialog({ mode: "edit", draft: selectedPeriod })} onClose={() => setSelection(null)} />
             : selectedWeek ? <WeekPanel season={season} weekIndex={selectedWeek.index} periods={seasonPeriods} onClose={() => setSelection(null)} />
-            : <PhaseOverview season={season} periods={seasonPeriods} sessions={teamSessions} onSelect={(id) => setSelection({ type: "period", id })} />}
+            : <PhaseOverview periods={seasonPeriods} sessions={teamSessions} onSelect={(id) => setSelection({ type: "period", id })} />}
         </PlannerProvider>
       </div>
     </>}
@@ -140,19 +135,8 @@ function NewSeason({ onCreate, today }: { onCreate(input: { title: string; start
     <input className={inputClass} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={`Season ${startYear}/${String(startYear + 1).slice(2)}`} aria-label="Season name" />
     <label className="grid gap-1.5 text-xs font-semibold text-[var(--ink-soft)]">Starts (a Monday)<input className={inputClass} type="date" value={startsOn ?? defaultStart} onChange={(event) => setStartsOn(event.target.value)} required /></label>
     <label className="grid gap-1.5 text-xs font-semibold text-[var(--ink-soft)]">Number of weeks<input className={inputClass} inputMode="numeric" value={weeks} onChange={(event) => setWeeks(event.target.value)} required /></label>
-    <Button disabled={busy}><CalendarPlus size={17} />{busy ? "Creating …" : "Create the season"}</Button>
+    <WinButton kind="weeks" disabled={busy}><CalendarPlus size={17} />{busy ? "Creating …" : "Create the season"}</WinButton>
   </form>;
-}
-
-function YearLegend() {
-  return <ul className="year-legend" aria-label="Legend">
-    {(["training", "competition", "break"] as const).map((kind) => <li key={kind}><i className="year-swatch" data-kind={kind} />{periodKindLabels[kind]}</li>)}
-    {VELOCITY_ZONES.map((zone) => <li key={zone.id}><i className="year-swatch" data-emphasis={zone.id} />{zone.label}</li>)}
-    <li><i className="year-dot is-published" />Published session</li>
-    <li><i className="year-dot" />Draft</li>
-    <li><i className="year-match" />Match</li>
-    <li><i className="year-swatch year-swatch-congested" />Congested week</li>
-  </ul>;
 }
 
 function PeriodDialog({ season, periods, state, onClose, onSave, onDelete }: { season: Season; periods: readonly Period[]; state: Exclude<DialogState, null>; onClose(): void; onSave(draft: Omit<Period, "id">): Promise<void>; onDelete?(): void }) {
@@ -197,7 +181,7 @@ function PeriodDialog({ season, periods, state, onClose, onSave, onDelete }: { s
   </Modal>;
 }
 
-function PhaseOverview({ season, periods, sessions, onSelect }: { season: Season; periods: readonly Period[]; sessions: readonly TrainingSession[]; onSelect(id: string): void }) {
+function PhaseOverview({ periods, sessions, onSelect }: { periods: readonly Period[]; sessions: readonly TrainingSession[]; onSelect(id: string): void }) {
   const phases = periods.filter((period) => period.level === "phase").sort((a, b) => a.startsOn.localeCompare(b.startsOn));
   const rowRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
@@ -242,7 +226,6 @@ function PhaseOverview({ season, periods, sessions, onSelect }: { season: Season
         <small>{shortDay(phase.startsOn)}–{shortDay(periodEndsOn(phase))} · {countLabel(phase.weeks, "week", "weeks")} · {countLabel(count, "session", "sessions")}</small>
         {phase.focus && <p className="phase-card-focus">{phase.focus}</p>}
         {noteLines(phase.notes).length > 0 && <ul>{noteLines(phase.notes).map((line) => <li key={line}>{line}</li>)}</ul>}
-        {season.throughline && phase.kind !== "break" && <em>“{season.throughline}”</em>}
       </button>;
     })}
   </div>
@@ -267,7 +250,8 @@ function writeSetting(key: string, value: string) {
 }
 
 function PeriodPanel({ period, sessions, onEdit, onClose }: { period: Period; sessions: readonly TrainingSession[]; onEdit(): void; onClose(): void }) {
-  const { setSessionsStatus } = useSpenst();
+  const { setSessionsStatus, athletes, currentTeam } = useSpenst();
+  const squadSize = teamAthletes(athletes, currentTeam?.id).length;
   const inPeriod = sessions.filter((session) => session.scheduledOn && session.scheduledOn >= period.startsOn && session.scheduledOn <= periodEndsOn(period));
   const drafts = inPeriod.filter((session) => session.status === "draft");
   const weeks = useMemo(() => Array.from({ length: period.weeks }, (_, index) => addDays(period.startsOn, index * 7)), [period.startsOn, period.weeks]);
@@ -289,7 +273,7 @@ function PeriodPanel({ period, sessions, onEdit, onClose }: { period: Period; se
         <h2 id="period-title">{period.title}</h2>
         <p className="period-dates">Weeks {isoWeek(period.startsOn)}–{isoWeek(periodEndsOn(period))} · {shortDay(period.startsOn)}–{shortDay(periodEndsOn(period))} · {countLabel(period.weeks, "week", "weeks")} · {countLabel(inPeriod.length, "session", "sessions")}</p>
         <div className="period-panel-actions">
-        {drafts.length > 0 && <Button size="sm" onClick={() => void setSessionsStatus(drafts.map((session) => session.id), "published").catch(() => undefined)}><Send size={15} />Publish {countLabel(drafts.length, "draft", "drafts")}</Button>}
+        {drafts.length > 0 && <WinButton kind="send" size="sm" heads={squadSize} text={countLabel(squadSize, "athlete", "athletes")} onClick={() => void setSessionsStatus(drafts.map((session) => session.id), "published").catch(() => undefined)}><Send size={15} />Publish {countLabel(drafts.length, "draft", "drafts")}</WinButton>}
         <Button variant="secondary" size="sm" onClick={onEdit}><Pencil size={15} />Edit</Button>
         </div>
       </div>
@@ -305,18 +289,18 @@ function PeriodPanel({ period, sessions, onEdit, onClose }: { period: Period; se
       </div>
       {view === "calendar" && <label className="period-view-toggle"><input type="checkbox" checked={detailed} onChange={(event) => { setDetailed(event.target.checked); writeSetting(DETAIL_KEY, String(event.target.checked)); }} />Show exercises</label>}
       <MixLegend />
+      <PlannerHint />
     </div>
     {view === "weeks" && <div className="week-strips">
       {weeks.map((weekStart, index) => <WeekStrip key={weekStart} weekStart={weekStart} label={`Week ${index + 1}`} showBlock={period.level === "phase"} />)}
     </div>}
     {view === "calendar" && <CalendarGrid weeks={weeks} detailed={detailed} showBlock={period.level === "phase"} />}
     {view === "progression" && <ProgressionTable weeks={weeks} />}
-    <PlannerHint />
   </section>;
 }
 
-function PlannerHint() {
-  return <p className="planner-hint"><span className="hidden sm:inline">Drag a session to move it, ⌥-drag to copy. Select with Shift-click, then ⌘C, and ⌘V on a day. Delete removes; every change can be undone.</span><span className="sm:hidden">Tap “+” on a day to add a session or a match.</span></p>;
+function PlannerHint({ align = "end" }: { align?: "start" | "end" }) {
+  return <HelpTip label="How to plan the days" align={align}><span className="hidden sm:inline">Drag a session to move it, ⌥-drag to copy. Select with Shift-click, then ⌘C, and ⌘V on a day. Delete removes; every change can be undone.</span><span className="sm:hidden">Tap “+” on a day to add a session or a match.</span></HelpTip>;
 }
 
 function WeekPanel({ season, weekIndex: index, periods, onClose }: { season: Season; weekIndex: number; periods: readonly Period[]; onClose(): void }) {
@@ -330,14 +314,13 @@ function WeekPanel({ season, weekIndex: index, periods, onClose }: { season: Sea
           {phase && <Tag tone={kindTone[phase.kind]}>{phase.title}</Tag>}
           {block && <Tag tone="sage">{block.title}</Tag>}
         </div>
-        <h2 id="week-title">Week {isoWeek(weekStart)}</h2>
+        <h2 id="week-title" className="flex items-center gap-1">Week {isoWeek(weekStart)}<PlannerHint align="start" /></h2>
         <p className="period-dates">{formatDay(weekStart, { weekday: "long", day: "numeric", month: "long" })} – {formatDay(addDays(weekStart, 6), { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
     </header>
     <Button variant="ghost" size="sm" className="period-panel-close w-9 px-0" onClick={onClose} aria-label="Close"><X size={17} /></Button>
     {(block?.focus || phase?.focus) && <div className="period-focus"><p className="period-focus-line">{block?.focus || phase?.focus}</p></div>}
     <div className="week-strips"><WeekStrip weekStart={weekStart} label="This week" showBlock={false} /></div>
-    <PlannerHint />
   </section>;
 }
 
