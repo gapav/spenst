@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { demoAthletes, demoMeasurements, demoOvrRows as seededOvrRows, demoPeriods, demoResults, demoSeasons, demoSessions, demoTeams, demoTestDays, demoUser, demoWeekNotes } from "@/lib/demo-data";
 import { BUILTIN_EXERCISES } from "@/lib/exercise-library";
 import { cleanBatteryTests, DEFAULT_BATTERY_ID, type TestBattery } from "@/lib/power-profile";
+import { parseAttemptDetails } from "@/lib/ovr-data";
 import { mergeOvrRows, OVR_BUCKET, parseSummary, storageFileName, XLSX_TYPE, type ImportStatus, type ImportSummary, type ImportWrites, type OvrMapping, type OvrRow, type TeamOvrMapping, type TestImport } from "@/lib/ovr-import";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -32,7 +33,7 @@ type DbMembership = { team_id: string; profile_id: string; role: TeamRole; teams
 type DbAthlete = { id: string; display_name: string; birth_month: string; sex: Sex; position: HandballPosition | null; measurement_consent: boolean; team_athletes: { team_id: string }[] | null };
 type DbMeasurement = { id: string; athlete_id: string; measured_on: string; height_cm: number | string; sitting_height_cm: number | string | null; body_mass_kg: number | string };
 type DbTestDay = { id: string; team_id: string; held_on: string; title: string; notes: string };
-type DbResult = { id: string; test_day_id: string; athlete_id: string; test_key: string; side: "both" | Side; value: number | string; import_id: string | null };
+type DbResult = { id: string; test_day_id: string; athlete_id: string; test_key: string; side: "both" | Side; value: number | string; import_id: string | null; details?: unknown };
 type DbExercise = { id: string; team_id: string; name: string; modality: Modality; metrics: MetricKey[]; unilateral: boolean; velocity_metric: "mean" | "peak" | null; cue: string };
 type DbSeason = { id: string; team_id: string; title: string; starts_on: string; weeks: number; throughline: string };
 type DbPeriod = { id: string; season_id: string; level: Period["level"]; kind: Period["kind"]; title: string; starts_on: string; weeks: number; emphasis: ZoneId | null; focus: string; notes: string };
@@ -87,7 +88,7 @@ const ovrRowPayload = (row: OvrRow) => ({
   target_type: row.targetType, target_min: row.targetMin, target_max: row.targetMax, jump_height_cm: row.jumpHeightCm, contact_time_s: row.contactTimeS, rsi: row.rsi, jump_type: row.jumpType,
   distance_m: row.distanceM, split_time_s: row.splitTimeS, total_time_s: row.totalTimeS, speed_kmh: row.speedKmh, in_beam_start: row.inBeamStart, trigger_start: row.triggerStart, extra: row.extra,
 });
-const mapResult = (row: DbResult): TestResult => ({ id: row.id, testDayId: row.test_day_id, athleteId: row.athlete_id, testKey: row.test_key, side: row.side === "both" ? null : row.side, value: Number(row.value), importId: row.import_id ?? null });
+const mapResult = (row: DbResult): TestResult => ({ id: row.id, testDayId: row.test_day_id, athleteId: row.athlete_id, testKey: row.test_key, side: row.side === "both" ? null : row.side, value: Number(row.value), importId: row.import_id ?? null, details: parseAttemptDetails(row.details) });
 
 function readSelectedTeamId(): string | null {
   try { return window.localStorage.getItem(SELECTED_TEAM_KEY); } catch { return null; }
@@ -254,7 +255,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabase.from("athletes").select("id, display_name, birth_month, sex, position, measurement_consent, team_athletes(team_id)").order("display_name"),
       supabase.from("athlete_measurements").select("id, athlete_id, measured_on, height_cm, sitting_height_cm, body_mass_kg"),
       supabase.from("test_days").select("id, team_id, held_on, title, notes").order("held_on", { ascending: false }),
-      supabase.from("test_results").select("id, test_day_id, athlete_id, test_key, side, value, import_id"),
+      supabase.from("test_results").select("id, test_day_id, athlete_id, test_key, side, value, import_id, details"),
       supabase.from("profiles").select("id, email, full_name, is_global_admin").eq("id", authUser.id).single(),
       supabase.from("exercises").select("id, team_id, name, modality, metrics, unilateral, velocity_metric, cue").is("archived_at", null).order("name"),
       supabase.from("seasons").select("id, team_id, title, starts_on, weeks, throughline").order("starts_on", { ascending: false }),
@@ -452,13 +453,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const value = input.value;
     setResults((current) => {
       const rest = current.filter((result) => !same(result));
-      return value === null ? rest : [...rest, { id: previous?.id ?? makeUuid(), testDayId: input.testDayId, athleteId: input.athleteId, testKey: input.testKey, side: input.side, value }];
+      // A value typed by hand is no OVR attempt: it keeps no details.
+      return value === null ? rest : [...rest, { id: previous?.id ?? makeUuid(), testDayId: input.testDayId, athleteId: input.athleteId, testKey: input.testKey, side: input.side, value, details: null }];
     });
     const side = input.side ?? "both";
     try {
       await persist(supabase && (() => value === null
         ? supabase.from("test_results").delete().match({ test_day_id: input.testDayId, athlete_id: input.athleteId, test_key: input.testKey, side })
-        : supabase.from("test_results").upsert({ test_day_id: input.testDayId, athlete_id: input.athleteId, test_key: input.testKey, side, value, recorded_by: user.id }, { onConflict: "test_day_id,athlete_id,test_key,side" })));
+        : supabase.from("test_results").upsert({ test_day_id: input.testDayId, athlete_id: input.athleteId, test_key: input.testKey, side, value, details: null, recorded_by: user.id }, { onConflict: "test_day_id,athlete_id,test_key,side" })));
     } catch (error) {
       setResults((current) => [...current.filter((result) => !same(result)), ...(previous ? [previous] : [])]);
       throw error;
@@ -677,7 +679,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const filePath = `${teamId}/${id}/${storageFileName(input.file.name)}`;
     const days: TestDay[] = input.writes.newTestDays.map((heldOn) => ({ id: makeUuid(), teamId, heldOn, title: "OVR test", notes: `Imported from ${input.file.name}` }));
     const dayFor = (date: string, testDayId: string | null) => testDayId ?? days.find((day) => day.heldOn === date)?.id ?? "";
-    const newResults: TestResult[] = input.writes.results.map((result) => ({ id: makeUuid(), testDayId: dayFor(result.date, result.testDayId), athleteId: result.athleteId, testKey: result.testKey, side: result.side, value: result.value, importId: id }));
+    const newResults: TestResult[] = input.writes.results.map((result) => ({ id: makeUuid(), testDayId: dayFor(result.date, result.testDayId), athleteId: result.athleteId, testKey: result.testKey, side: result.side, value: result.value, importId: id, details: result.details ?? null }));
     const summary: ImportSummary = {
       results: newResults.length,
       rowsAdded: 0,
@@ -702,7 +704,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (result.error) return failed(result);
       }
       if (newResults.length) {
-        const result = await supabase.from("test_results").upsert(newResults.map((entry) => ({ test_day_id: entry.testDayId, athlete_id: entry.athleteId, test_key: entry.testKey, side: entry.side ?? "both", value: entry.value, recorded_by: user.id, import_id: id })), { onConflict: "test_day_id,athlete_id,test_key,side" });
+        const result = await supabase.from("test_results").upsert(newResults.map((entry) => ({ test_day_id: entry.testDayId, athlete_id: entry.athleteId, test_key: entry.testKey, side: entry.side ?? "both", value: entry.value, details: entry.details ?? null, recorded_by: user.id, import_id: id })), { onConflict: "test_day_id,athlete_id,test_key,side" });
         if (result.error) return failed(result);
       }
       // Every row, in batches; the database adds the new, updates the changed and skips the rest.

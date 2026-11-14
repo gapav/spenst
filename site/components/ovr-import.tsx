@@ -11,6 +11,7 @@ import {
   ALTERNATING_SET_REPS, alternatingIssues, defaultDates, exportedAt, importWrites, legsOf, matchAthletes, OvrFormatError, ovrMeasures, ovrRows, parseOvrExport, planImport, rememberedMatches,
   sameFileImport, sha256Hex, suggestMapping, testsFor, type OvrExport, type OvrMapping, type OvrMeasure, type PlannedDate, type TestImport, type ValueStatus,
 } from "@/lib/ovr-import";
+import { detailsOutOf, detailsPlace, detailsSummary } from "@/lib/ovr-data";
 import { TESTS, type TestKey } from "@/lib/power-profile";
 import { teamAthletes } from "@/lib/squad";
 import type { Side } from "@/lib/types";
@@ -294,7 +295,7 @@ function DateRow({ entry, checked, onCheck }: { entry: PlannedDate; checked: boo
         <tbody>{[...entry.results].sort((a, b) => name(a.athleteId).localeCompare(name(b.athleteId)) || a.testKey.localeCompare(b.testKey)).map((result) => <tr key={`${result.athleteId}-${result.testKey}-${result.side}`}>
           <th scope="row">{name(result.athleteId)}</th>
           <td>{TESTS[result.testKey].name}{result.side ? `, ${result.side}` : ""}</td>
-          <td className="num">{formatValue(result.testKey, result.value)}</td>
+          <td className="num">{formatValue(result.testKey, result.value)}{result.status !== "same" && result.details && <small className="attempt-summary">{[detailsSummary(result.details), detailsPlace(result.details), detailsOutOf(result.details)].filter(Boolean).join(" · ")}</small>}</td>
           <td className="num">{result.existing === null ? "—" : formatValue(result.testKey, result.existing)}</td>
           <td><Tag tone={statusTones[result.status]}>{statusLabels[result.status]}</Tag></td>
         </tr>)}</tbody>

@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Flag } from "lucide-react";
 import { asymmetryLabels, sideLabels, type Asymmetry } from "@/lib/asymmetry";
 import { familyLabels, familyOf, FAMILY_ORDER, formatValue, type ProfileTest } from "@/lib/power-profile";
+import { resultDetailLines } from "@/lib/ovr-data";
 import { cn } from "@/lib/utils";
 
 const asymmetryIcons = { ok: CheckCircle2, tagged: Flag, high: AlertTriangle } as const;
@@ -42,7 +43,8 @@ export function PowerRadar({ tests, label, reference }: { tests: readonly Profil
     {tests.map((test, index) => {
       // A little off the centre, so the squad's weakest still shows as a point.
       const [x, y] = point(index, 0.06 + 0.94 * (test.inSquadRange ?? 0));
-      const title = `${test.test.name}: ${test.latest ? `${formatValue(test.latest.value, test.test.unit)} · ${percent(test.ofSquadBest ?? 0)} of the squad’s best${test.rank ? ` · ${test.rank} of ${test.ranked}` : ""}` : "not tested"}`;
+      // The hover names the attempt behind the value, when OVR measured it.
+      const title = [`${test.test.name}: ${test.latest ? `${formatValue(test.latest.value, test.test.unit)} · ${percent(test.ofSquadBest ?? 0)} of the squad’s best${test.rank ? ` · ${test.rank} of ${test.ranked}` : ""}` : "not tested"}`, ...resultDetailLines(test.latest)].join("\n");
       const [rimX, rimY] = point(index, 1);
       return <g key={test.test.key} data-family={familyOf(test.test)}>
         <title>{title}</title>

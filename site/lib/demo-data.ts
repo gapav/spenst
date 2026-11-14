@@ -2,7 +2,8 @@ import { BUILTIN_EXERCISES } from "./exercise-library";
 import { BUILTIN_BATTERIES, TESTS, type TestKey } from "./power-profile";
 import type { Period, Season, WeekNote } from "./season";
 import { sectionPresets, type ExerciseSlot, type SectionKind, type SessionContent, type SetGroup, type SlotVariant } from "./training";
-import { EMPTY_VALUES as EMPTY_OVR_VALUES, rowChecksum, type OvrRow } from "./ovr-import";
+import { detailsForResults } from "./ovr-data";
+import { EMPTY_VALUES as EMPTY_OVR_VALUES, rowChecksum, suggestMapping, type OvrRow } from "./ovr-import";
 import type { Athlete, HandballPosition, Measurement, Profile, Sex, Team, TestDay, TestResult, TrainingSession } from "./types";
 
 /**
@@ -118,7 +119,7 @@ const battery = (id: string) => BUILTIN_BATTERIES.find((entry) => entry.id === i
 
 // The girls test on Youth 8. The seniors are on Spenst 7, but their August day
 // ran the longer Senior 10 as well, so either battery has numbers to show.
-export const demoResults: TestResult[] = [
+const seededResults: TestResult[] = [
   ...resultsFor("day-j15-sep", battery("builtin:youth-8"), "team-j15", groupOf, 1),
   ...resultsFor("day-j15-oct", ["sprint_5m", "sprint_10m", "cmj"], "team-j15", groupOf, 2),
   // Before the summer: a little behind where they are in August.
@@ -343,8 +344,8 @@ const VELOCITY_TESTS: { key: TestKey; exercise: string; loadKg: number; peakVelo
 const REP_SHARES = [0.93, 1, 0.96, 0.9, 0.97, 0.94];
 
 function testDayHistory(seed: Seed, index: number, dayId: string, date: string): OvrRow[] {
-  const result = (key: TestKey) => demoResults.find((entry) => entry.testDayId === dayId && entry.athleteId === seed.id && entry.testKey === key)?.value ?? null;
-  const sidedResult = (key: TestKey, side: "left" | "right") => demoResults.find((entry) => entry.testDayId === dayId && entry.athleteId === seed.id && entry.testKey === key && entry.side === side)?.value ?? null;
+  const result = (key: TestKey) => seededResults.find((entry) => entry.testDayId === dayId && entry.athleteId === seed.id && entry.testKey === key)?.value ?? null;
+  const sidedResult = (key: TestKey, side: "left" | "right") => seededResults.find((entry) => entry.testDayId === dayId && entry.athleteId === seed.id && entry.testKey === key && entry.side === side)?.value ?? null;
   const rows: OvrRow[] = [];
   // Every OVR Velocity test, every column OVR writes, the best rep's peak
   // power exactly the recorded result. Two-legged tests: two sets of three.
@@ -402,3 +403,16 @@ export const demoOvrRows: OvrRow[] = seniorSeeds.flatMap((seed, index) => [
   ...testDayHistory(seed, index, "day-sen-aug", "2026-08-20"),
   ...testDayHistory(seed, index, "day-sen-oct", "2026-10-01"),
 ]);
+
+/**
+ * The results as an import would have written them: each OVR-read value with
+ * the attempt it came from (decision 27). The girls' results are typed in, and
+ * keep none.
+ */
+const heldOn = new Map(demoTestDays.map((day) => [day.id, day.heldOn]));
+const seededDetails = detailsForResults(
+  seededResults.map((result) => ({ ...result, date: heldOn.get(result.testDayId) ?? "" })),
+  demoOvrRows,
+  (key, kind, exercise, distanceM) => suggestMapping({ key, kind, exercise, distanceM, rows: 0, athletes: 0, latest: "" }),
+);
+export const demoResults: TestResult[] = seededResults.map((result, index) => seededDetails[index] ? { ...result, details: seededDetails[index] } : result);

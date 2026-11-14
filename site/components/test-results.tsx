@@ -3,7 +3,8 @@
 import { ChartScatter, PenLine, Scale, Table2, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { bestAttempt, bestOf, columnsWithData, formatCell, niceTicks, type Attempt, type AttemptMetric, type OvrColumn } from "@/lib/ovr-data";
+import { attemptFields, bestAttempt, bestOf, columnsWithData, formatCell, niceTicks, type Attempt, type AttemptMetric, type OvrColumn } from "@/lib/ovr-data";
+import { HelpTip } from "./ui";
 import { deviceLabels, familyOf, familyLabels, type TestDefinition } from "@/lib/power-profile";
 import type { Athlete, Side, TestResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,32 +25,26 @@ interface Line {
   attempts: Attempt[];
 }
 
-/** What an attempt's tooltip says: everything OVR measured on it. */
+/** What an attempt's tooltip says: every column OVR filled for it, the load and start included. */
 function attemptLines(attempt: Attempt): string[] {
-  const row = attempt.rows[0];
-  if (row.sheet === "velocity") {
-    return [
-      row.loadKg !== null ? `Load ${format(row.loadKg, 1)} kg` : null,
-      row.peakPower !== null ? `Peak power ${format(row.peakPower, 0)} W` : null,
-      row.meanPower !== null ? `Mean power ${format(row.meanPower, 0)} W` : null,
-      row.peakVelocity !== null ? `Peak velocity ${format(row.peakVelocity, 2)} m/s` : null,
-      row.meanVelocity !== null ? `Mean velocity ${format(row.meanVelocity, 2)} m/s` : null,
-      row.romCm !== null ? `ROM ${format(row.romCm, 1)} cm` : null,
-      row.tpvS !== null ? `Time to peak ${format(row.tpvS, 2)} s` : null,
-    ].filter((line): line is string => Boolean(line));
-  }
-  if (row.sheet === "jump") {
-    return [
-      row.jumpHeightCm !== null ? `Height ${format(row.jumpHeightCm, 1)} cm` : null,
-      row.contactTimeS !== null ? `Contact ${format(row.contactTimeS, 3)} s` : null,
-      row.rsi !== null ? `RSI ${format(row.rsi, 2)}` : null,
-    ].filter((line): line is string => Boolean(line));
-  }
-  let covered = 0;
-  return [
-    ...attempt.rows.map((split) => { const from = covered; covered += split.distanceM ?? 0; return `${split.distanceM !== null ? `${from}–${covered} m` : `Split ${split.splitNumber ?? ""}`} ${format(split.splitTimeS ?? 0, 3)} s${split.speedKmh ? ` · ${format(split.speedKmh, 1)} km/h` : ""}`; }),
-    attempt.values.time !== null ? `Time ${format(attempt.values.time, 3)} s` : "",
-  ].filter(Boolean);
+  return attemptFields(attempt.rows).filter((field) => !["Set", "Rep", "Run"].includes(field.label)).map((field) => `${field.label} ${field.text}`);
+}
+
+/** The attempt a value is: the athlete's attempt (on a leg) with that value of the metric. */
+function attemptWith(attempts: readonly Attempt[], metric: AttemptMetric, value: number, side: Side | null = null): Attempt | null {
+  return attempts.find((attempt) => (side === null || attempt.side === side) && typeof attempt.values[metric.key] === "number" && Math.abs((attempt.values[metric.key] as number) - value) < 0.0005) ?? null;
+}
+
+/** What each velocity metric means, kept in a help tip rather than on the page. */
+function MetricHelp({ metrics }: { metrics: readonly AttemptMetric[] }) {
+  if (!metrics.some((metric) => ["romCm", "tpvS", "durationS", "eaIndex"].includes(metric.key))) return null;
+  return <HelpTip label="What the metrics mean">
+    <p><strong>Peak and mean power, peak and mean velocity</strong>: the bar’s best instant, and its average over the rep. Higher is better.</p>
+    <p><strong>ROM</strong>: how far the bar travelled. Higher ranks first, but read it as context: a longer pull is not always a better one.</p>
+    <p><strong>Time to peak</strong> (TPV): how soon the bar reached its peak velocity. <strong>Duration</strong>: how long the rep took. Lower is better for both.</p>
+    <p><strong>EA index</strong>: OVR’s own index for the rep. Higher is better.</p>
+    <p><strong>Load</strong> is shown beside every rep, never ranked.</p>
+  </HelpTip>;
 }
 
 /**
@@ -98,6 +93,15 @@ export function TestResults({ test, squad, results, metrics, attempts, entry, re
   const median = values.length ? [...values].sort((a, b) => a - b)[Math.floor((values.length - 1) / 2)] : null;
   const leader = tested[0] ?? null;
   const selected = ranked.find((line) => line.athlete.id === selectedId) ?? null;
+  // Load is context: what the bar weighed, beside the reps, never a ranking.
+  const loads = [...new Set(attempts.map((attempt) => attempt.values.loadKg).filter((value): value is number => typeof value === "number"))].sort((a, b) => a - b);
+
+  /** The best's tooltip: the value, then every column of the attempt it is. */
+  function bestLines(line: Line, value: number, side: Side | null = null): string[] {
+    const attempt = attemptWith(line.attempts, metric, value, side);
+    const own = side ? line.attempts.filter((candidate) => candidate.side === side) : line.attempts;
+    return [withUnit(value, metric), ...(attempt ? [`${attempt.label} · best of ${own.length}`, ...attemptLines(attempt)] : [])];
+  }
 
   function show(event: React.SyntheticEvent<HTMLElement>, title: string, tipLines: string[]) {
     const box = chart.current?.getBoundingClientRect();
@@ -129,9 +133,13 @@ export function TestResults({ test, squad, results, metrics, attempts, entry, re
       <div className="stat-tile"><small>Tested</small><strong>{tested.length} of {squad.length}</strong><span>{attempts.length ? `${attempts.length} ${attempts[0].rows[0].sheet === "sprint" ? "runs" : attempts[0].rows[0].sheet === "jump" ? "jumps" : "reps"} in OVR` : onRecord ? "typed in" : "no OVR rows"}</span></div>
     </div>
 
-    {metrics.length > 1 && <div className="chip-row tr-metrics" role="group" aria-label="Metric">
-      {metrics.map((candidate, index) => <button key={candidate.key} type="button" aria-pressed={candidate.key === metric.key} onClick={() => setMetricKey(candidate.key)}>{candidate.label}{index === 0 && <small>the test</small>}</button>)}
+    {metrics.length > 1 && <div className="tr-metrics tr-metrics-row">
+      <div className="chip-row" role="group" aria-label="Metric">
+        {metrics.map((candidate, index) => <button key={candidate.key} type="button" aria-pressed={candidate.key === metric.key} onClick={() => setMetricKey(candidate.key)}>{candidate.label}{index === 0 && <small>the test</small>}</button>)}
+      </div>
+      <MetricHelp metrics={metrics} />
     </div>}
+    {loads.length > 0 && <p className="tr-context">Load {loads.length === 1 ? `${format(loads[0], loads[0] % 1 ? 1 : 0)} kg` : `${format(loads[0], 0)}–${format(loads.at(-1) as number, 0)} kg`} · shown with every rep, not ranked</p>}
 
     {view === "asymmetry" ? <>
       <AsymmetryView lines={ranked} metric={metric} isScored={isScored} selectedId={selectedId} onSelect={(id) => setSelectedId(selectedId === id ? null : id)} />
@@ -162,10 +170,10 @@ export function TestResults({ test, squad, results, metrics, attempts, entry, re
                 onMouseEnter={(event) => show(event, `${line.athlete.displayName} · ${attempt.label}`, attemptLines(attempt))} onFocus={(event) => show(event, `${line.athlete.displayName} · ${attempt.label}`, attemptLines(attempt))} onBlur={() => setTip(null)}
                 onClick={(event) => { show(event, `${line.athlete.displayName} · ${attempt.label}`, attemptLines(attempt)); setSelectedId(line.athlete.id); }} />)}
               {sideValues.map((side) => <button key={side} type="button" className={cn("tr-best", side === "right" && "is-right")} style={{ left: at(line.sides[side] as number) }} aria-label={`${line.athlete.displayName}, ${side}: ${withUnit(line.sides[side] as number, metric)}`}
-                onMouseEnter={(event) => show(event, `${line.athlete.displayName} · ${side} leg`, [withUnit(line.sides[side] as number, metric)])} onFocus={(event) => show(event, `${line.athlete.displayName} · ${side} leg`, [withUnit(line.sides[side] as number, metric)])} onBlur={() => setTip(null)} onClick={() => setSelectedId(line.athlete.id)} />)}
+                onMouseEnter={(event) => show(event, `${line.athlete.displayName} · ${side} leg`, bestLines(line, line.sides[side] as number, side))} onFocus={(event) => show(event, `${line.athlete.displayName} · ${side} leg`, bestLines(line, line.sides[side] as number, side))} onBlur={() => setTip(null)} onClick={() => setSelectedId(line.athlete.id)} />)}
               {line.value !== null && !sideValues.length && <button type="button" className="tr-best" style={{ left: at(line.value) }} aria-label={`${line.athlete.displayName}, best: ${withUnit(line.value, metric)}`}
-                onMouseEnter={(event) => show(event, `${line.athlete.displayName} · best`, [withUnit(line.value as number, metric), ...(line.attempts.length ? [`Best of ${line.attempts.length}`] : [])])}
-                onFocus={(event) => show(event, `${line.athlete.displayName} · best`, [withUnit(line.value as number, metric)])} onBlur={() => setTip(null)} onClick={() => setSelectedId(line.athlete.id)} />}
+                onMouseEnter={(event) => show(event, `${line.athlete.displayName} · best`, bestLines(line, line.value as number))}
+                onFocus={(event) => show(event, `${line.athlete.displayName} · best`, bestLines(line, line.value as number))} onBlur={() => setTip(null)} onClick={() => setSelectedId(line.athlete.id)} />}
             </div>
             <div className="tr-value">
               {line.value !== null ? <>
@@ -332,6 +340,14 @@ function AttemptDetail({ line, metric, scored, metrics, onClose }: { line: Line;
         </figure>;
       })}
     </div>)}
+    {[...bestKeys].map((key) => {
+      const best = line.attempts.find((attempt) => attempt.key === key);
+      if (!best) return null;
+      return <div key={key}>
+        <p className="attempt-fields-title">{sided ? `${best.side === "left" ? "Left" : "Right"} leg’s best` : "Best attempt"} · {best.label}</p>
+        <dl className="attempt-fields">{attemptFields(best.rows).map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.text}</dd></div>)}</dl>
+      </div>;
+    })}
     {line.attempts.length > 0 && !sprint && <p className="tr-note">{sided ? "Every rep in order, a gap between sets; L and R per leg. The highlighted reps are each leg’s best — the results" : "Set · rep. The highlighted rep is the one the result comes from"}{metric.key !== scored.key ? ` (best ${scored.label.toLocaleLowerCase("en-GB")})` : ""}.</p>}
   </div>;
 }
