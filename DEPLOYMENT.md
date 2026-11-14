@@ -42,6 +42,7 @@ table.
 | `202610070005_test_batteries.sql` | applied | pending |
 | `202611130001_delete_athlete.sql` | applied | pending |
 | `202611130002_matches_and_session_slots.sql` | applied | pending |
+| `202611140001_result_details.sql` | applied | pending |
 
 There is no `202610070003`: the plan's list of migrations to apply skipped it.
 All four went into the development project on 13 November 2026, in one paste
