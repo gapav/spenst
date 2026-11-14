@@ -144,10 +144,35 @@ export interface TrainingSession {
   teamId: string;
   /** `YYYY-MM-DD`, or null while it is still being placed. */
   scheduledOn: string | null;
+  /** Morning or afternoon, for days with two sessions; null for “any time”. */
+  slot: SessionSlot | null;
   title: string;
   status: SessionStatus;
   content: SessionContent;
 }
 
-export type TrainingSessionPatch = Partial<Pick<TrainingSession, "title" | "scheduledOn" | "status">>;
+export type SessionSlot = "am" | "pm";
+
+export type TrainingSessionPatch = Partial<Pick<TrainingSession, "title" | "scheduledOn" | "slot" | "status">>;
+
+export type MatchKind = "league" | "cup" | "friendly" | "playoff";
+
+/**
+ * A match on the team's calendar. Like a session it sits on a date and
+ * belongs to no period; the plan labels the days around it (MD-3, MD, MD+1).
+ */
+export interface Match {
+  id: string;
+  teamId: string;
+  /** `YYYY-MM-DD`. */
+  playedOn: string;
+  /** `HH:MM`, local; null while unknown. */
+  kickOff: string | null;
+  opponent: string;
+  home: boolean;
+  kind: MatchKind;
+  /** A decisive match — something to taper towards. */
+  priority: boolean;
+  note: string;
+}
 

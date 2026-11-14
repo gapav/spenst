@@ -3,10 +3,10 @@
 import { CircleHelp, X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cn, readableInk } from "@/lib/utils";
 
-export function Button({ className, variant = "primary", size = "md", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg" }) {
+export function Button({ className, variant = "primary", size = "md", ...props }: ComponentProps<"button"> & { variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg" }) {
   return <button className={cn("spenst-button inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-45", size === "sm" && "min-h-9 px-3 text-sm", size === "md" && "min-h-11 px-4 text-sm", size === "lg" && "min-h-12 px-5", variant === "primary" && "bg-[var(--signature)] text-[var(--on-bright)] enabled:hover:bg-[var(--signature-hover)]", variant === "secondary" && "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] enabled:hover:border-[var(--ink)]", variant === "ghost" && "text-[var(--ink-soft)] enabled:hover:bg-[var(--hover-wash-strong)] enabled:hover:text-[var(--ink)]", variant === "danger" && "bg-[var(--danger-bg)] text-[var(--danger)] enabled:hover:bg-[var(--danger-bg-hover)]", className)} {...props} />;
 }
 
@@ -19,7 +19,7 @@ export function Button({ className, variant = "primary", size = "md", ...props }
 let scrollLockCount = 0;
 let overflowBeforeLock = "";
 
-function lockPageScroll() {
+export function lockPageScroll() {
   if (scrollLockCount === 0) {
     overflowBeforeLock = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -39,7 +39,8 @@ export function Modal({ open, title, description, children, onClose, size = "md"
   // behind stays put so the only thing that scrolls is the dialog itself.
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    // Handled, so a page behind that closes things on Escape leaves itself alone.
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } };
     const releaseScroll = lockPageScroll();
     document.addEventListener("keydown", onKeyDown);
     return () => {

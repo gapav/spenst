@@ -130,6 +130,20 @@ reasoning is not lost.
     Migrations stay schema-only, and the Actions agent never runs SQL
     (decision 21).
 
+24. **Planning happens on a seven-day week** (decided 13 November 2026). Every
+    week in the season plan is a Monday–Sunday strip, with “+” on each day to
+    add a session or a match. Sessions get an optional AM/PM slot, because
+    two sessions in a day happens. Matches are their own records, and
+    rostered athletes can read them. A day carries the MD label of the
+    **nearer** match; when two matches are equally near, the next one wins
+    (MD-n), and the tooltip shows both. **Copies are independent:** a copied
+    session, week or block has no link to where it came from. A later,
+    explicit “apply this change to the following weeks” is allowed; silent
+    linked templates are not. On desktop, opening a session from the plan
+    shows the full builder in a side drawer over the plan, with the URL
+    updated; on a phone it stays a page. The block overview's exercise ×
+    week matrix is read-only. Editing progressions in it is #14.
+
 27. **A test result keeps its best attempt's details** (decided 14 November
     2026, issue #24; 24–26 are left to the issues that name them). A value
     read from OVR is stored with every number of the rep, jump or run that

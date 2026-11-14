@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addDays, dayNumber, overlapsOnLevel, seasonEndsOn, type Period } from "../season";
+import { isCongestedWeek, matchDayLabel } from "../match-days";
+import { addDays, dayNumber, mondayOf, overlapsOnLevel, seasonEndsOn, type Period } from "../season";
+import type { Match } from "../types";
 import { handball2ndDivision202627 as template } from "./handball-2nd-division-2026-27";
 
-const { season, phases, weekNotes } = template;
+const { season, phases, weekNotes, matches, retiredWeekNotes } = template;
+const asMatches: Match[] = matches.map((match, index) => ({ ...match, id: `match-${index}`, teamId: "team" }));
 const seasonEnd = seasonEndsOn(season);
 const isMonday = (dateKey: string) => new Date(`${dateKey}T00:00:00Z`).getUTCDay() === 1;
 const inSeason = (dateKey: string) => dayNumber(dateKey) >= dayNumber(season.startsOn) && dayNumber(dateKey) <= dayNumber(seasonEnd);
@@ -75,8 +78,59 @@ describe("handball 2. divisjon 2026/27 template", () => {
     const qualification = phases[8];
     expect(qualification).toMatchObject({ title: "Qualification window", kind: "competition", startsOn: "2027-04-12", weeks: 3 });
     expect(qualification.notes.split("\n")).toHaveLength(6);
-    expect(weekNotes.find((note) => note.weekStart === "2026-10-26")?.label).toBe("2 away: Sat Haslum IL 15:00 · Sun Nordstrand 2 12:00");
-    expect(weekNotes.find((note) => note.weekStart === "2027-03-01")?.label).toBe("2 matches: Wed A Gneist 19:00 · Sun H Nordstrand 2 14:00");
-    expect(weekNotes).toHaveLength(42);
+    expect(weekNotes.find((note) => note.weekStart === "2026-10-26")?.label).toBe("Away weekend");
+    expect(weekNotes).toHaveLength(21);
+  });
+});
+
+describe("the fixture list", () => {
+  const weekday = (dateKey: string) => new Date(`${dateKey}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+
+  it("has the 22 league matches, home and away against each of the 11 other teams, inside the season", () => {
+    expect(matches).toHaveLength(22);
+    const opponents = new Set(matches.map((match) => match.opponent));
+    expect(opponents.size).toBe(11);
+    for (const opponent of opponents) {
+      expect(matches.filter((match) => match.opponent === opponent).map((match) => match.home).sort(), opponent).toEqual([false, true]);
+    }
+    for (const match of matches) expect(inSeason(match.playedOn), match.playedOn).toBe(true);
+  });
+
+  it("puts the spot-checked matches on the right day and time", () => {
+    const on = (date: string) => matches.find((match) => match.playedOn === date);
+    expect(weekday("2026-08-30")).toBe("Sun");
+    expect(on("2026-08-30")).toMatchObject({ opponent: "BSI", home: true, kickOff: "16:00" });
+    expect(weekday("2026-10-17")).toBe("Sat");
+    expect(on("2026-10-17")).toMatchObject({ opponent: "Ros", home: true, kickOff: "16:00" });
+    expect(weekday("2026-11-18")).toBe("Wed");
+    expect(on("2026-11-18")).toMatchObject({ opponent: "Gneist", home: true, kickOff: "18:00" });
+    expect(weekday("2027-03-03")).toBe("Wed");
+    expect(on("2027-03-03")).toMatchObject({ opponent: "Gneist", home: false, kickOff: "19:00" });
+    expect(on("2027-04-11")).toMatchObject({ opponent: "Bergensdalen", priority: true });
+  });
+
+  it("makes the away weekends and the two-match week congested, and gives the week before a Saturday match its MD labels", () => {
+    expect(isCongestedWeek("2026-10-26", asMatches)).toBe(true);
+    expect(isCongestedWeek("2027-02-08", asMatches)).toBe(true);
+    expect(isCongestedWeek("2027-03-01", asMatches)).toBe(true);
+    expect(isCongestedWeek("2026-10-12", asMatches)).toBe(false);
+    expect(matchDayLabel("2026-10-15", asMatches)?.label).toBe("MD-2");
+  });
+
+  it("retires only notes this template no longer writes, each on a Monday", () => {
+    const current = new Set(weekNotes.map((note) => `${note.weekStart}|${note.label}`));
+    for (const note of retiredWeekNotes) {
+      expect(isMonday(note.weekStart), note.weekStart).toBe(true);
+      expect(current.has(`${note.weekStart}|${note.label}`), note.weekStart).toBe(false);
+    }
+  });
+
+  it("covers every match the old notes named: each retired match note's week has a match", () => {
+    for (const note of retiredWeekNotes.filter((entry) => entry.label !== "No match")) {
+      expect(matches.some((match) => mondayOf(match.playedOn) === note.weekStart), note.label).toBe(true);
+    }
+    for (const note of retiredWeekNotes.filter((entry) => entry.label === "No match")) {
+      expect(matches.some((match) => mondayOf(match.playedOn) === note.weekStart), note.weekStart).toBe(false);
+    }
   });
 });

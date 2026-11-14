@@ -1,8 +1,9 @@
 ---
 paths:
-  - "site/lib/season.{ts,test.ts}"
+  - "site/lib/{season,planning,match-days}.{ts,test.ts}"
   - "site/components/season-{plan,timeline}.tsx"
-  - "site/app/plan/page.tsx"
+  - "site/components/{week-planner,session-drawer}.tsx"
+  - "site/app/plan/**"
 ---
 
 # The year plan (`lib/season.ts`, `/plan`)
@@ -19,3 +20,20 @@ paths:
 - The timeline (`components/season-timeline.tsx`) is a CSS grid of week
   columns. Mouse drags across free weeks to create; touch taps (a drag must
   scroll the year); keyboard uses “New phase” / “New block”.
+- **Planning is day by day (decision 24).** `components/week-planner.tsx`:
+  every week is a Monday–Sunday strip with “+” per day (session, copy of…,
+  paste, match); block views *Weeks / Calendar / Progression*. The pure parts
+  are in `lib/planning.ts` (copying, paste offsets, week summaries, the
+  exercise × week matrix) and `lib/match-days.ts` (MD labels: the nearer
+  match wins, a tie goes to MD-n; congestion at ≤ 72 h).
+- **Copies are independent.** `copySessions` clones content with new ids
+  (`cloneContent`); nothing links a copy to its source. Every planner action
+  offers an undo; multi-moves go through the `move_sessions` RPC so they are
+  atomic.
+- **Matches are calendar items** (`matches`, like sessions: on dates, owned
+  by no period). Athletes may read them; there is no athlete screen yet.
+- **The builder opens in a drawer** from `/plan`: `app/plan/@drawer/(.)sessions/[sessionId]`
+  intercepts the soft navigation; a reload gets the full page. Escape is
+  layered — a modal or menu marks it handled (`preventDefault`), the planner
+  clears its selection in the capture phase, and only then does the plan
+  close its panel.

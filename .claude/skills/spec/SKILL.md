@@ -35,7 +35,7 @@ to stand on its own: the agent sees nothing of this conversation.
    maintainer said to go ahead:
 
    ```bash
-   gh project item-add 2 --owner gapav --url <issue url>
+   gh project item-add 3 --owner gapav --url <issue url>
    GITHUB_REPOSITORY=gapav/spenst .github/scripts/project-status.sh N "Backlog"
    ```
 4. **Decisions** the maintainer made in the interview go to

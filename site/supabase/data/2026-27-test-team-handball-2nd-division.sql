@@ -4,8 +4,11 @@
 --
 -- A data script, not a migration (decision 23; see README.md here).
 -- Targets team Test Team, season Season 2026/27 (2026-08-03, 52 weeks).
--- It replaces that season's phases, upserts its week notes and sets its
--- throughline. Blocks, sessions and the notes on other weeks stay as they are.
+-- It replaces that season's phases, upserts its week notes, adds the team's
+-- matches that are not there yet (same date and opponent), deletes the week
+-- notes that are matches now while they still read exactly as this script
+-- once wrote them, and sets the throughline. Blocks, sessions, other matches
+-- and the notes on other weeks stay as they are.
 -- Running it twice gives the same result.
 --
 -- Run once, after a backup, from site/:
@@ -18,6 +21,8 @@ do $script$
 declare
   matches integer;
   target uuid;
+  target_team uuid;
+  author uuid;
 begin
   -- Team names are not unique, so the name must pick out exactly one team.
   select count(*) into matches from public.teams team where team.name = 'Test Team';
@@ -43,6 +48,19 @@ begin
 
   if target is null then
     raise exception 'Season % for team % does not start on % with % weeks.', 'Season 2026/27', 'Test Team', date '2026-08-03', 52;
+  end if;
+
+  select season.team_id into target_team from public.seasons season where season.id = target;
+
+  -- A match records who made it; the script makes them as the team's first admin.
+  select membership.profile_id into author
+  from public.team_memberships membership
+  where membership.team_id = target_team and membership.role = 'admin'
+  order by membership.joined_at
+  limit 1;
+
+  if author is null then
+    raise exception 'Team % has no admin to record the matches as.', 'Test Team';
   end if;
 
   -- Phases only: blocks and sessions are left alone.
@@ -194,39 +212,18 @@ begin
   values
     (target, date '2026-08-03', 'Preseason starts · test day'),
     (target, date '2026-08-17', 'Last preseason week · taper'),
-    (target, date '2026-08-24', 'Sun H BSI 16:00 · league start'),
-    (target, date '2026-08-31', 'No match'),
-    (target, date '2026-09-07', 'No match'),
-    (target, date '2026-09-14', 'Sat A Bjørnar 16:00'),
-    (target, date '2026-09-21', 'Sat H Fyllingen 14:00'),
-    (target, date '2026-09-28', 'No match'),
-    (target, date '2026-10-05', 'No match'),
-    (target, date '2026-10-12', 'Sat H Ros 16:00'),
-    (target, date '2026-10-19', 'No match'),
-    (target, date '2026-10-26', '2 away: Sat Haslum IL 15:00 · Sun Nordstrand 2 12:00'),
-    (target, date '2026-11-02', 'No match'),
-    (target, date '2026-11-09', 'No match'),
-    (target, date '2026-11-16', 'Wed H Gneist 18:00'),
-    (target, date '2026-11-23', 'Sun H Bækkelaget 16:00'),
-    (target, date '2026-11-30', 'Sun A Bergensdalen 15:00'),
-    (target, date '2026-12-07', 'Sun A Viking TIF 2 13:00'),
-    (target, date '2026-12-14', 'Sat H Åsane 2 16:00 · last match before Christmas'),
+    (target, date '2026-08-24', 'League start'),
+    (target, date '2026-10-26', 'Away weekend'),
+    (target, date '2026-12-14', 'Last match before Christmas'),
     (target, date '2026-12-21', 'Christmas · no team practice'),
     (target, date '2026-12-28', 'Christmas · no team practice'),
     (target, date '2027-01-04', 'Team practice restarts · retest'),
-    (target, date '2027-01-11', 'Sat A Fyllingen 16:30 · restart'),
-    (target, date '2027-01-18', 'No match'),
-    (target, date '2027-01-25', 'Sat A BSI 14:30'),
-    (target, date '2027-02-01', 'Sun H Haslum IL 14:00'),
-    (target, date '2027-02-08', '2 away: Sat Ros 16:00 · Sun Bækkelaget 14:00'),
-    (target, date '2027-02-15', 'Sun H Viking TIF 2 16:00'),
-    (target, date '2027-02-22', 'No match'),
-    (target, date '2027-03-01', '2 matches: Wed A Gneist 19:00 · Sun H Nordstrand 2 14:00'),
-    (target, date '2027-03-08', 'No match · last loading week'),
-    (target, date '2027-03-15', 'Sat A Åsane 2 14:00 · decide: contender?'),
-    (target, date '2027-03-22', 'Easter · no match'),
-    (target, date '2027-03-29', 'Sat H Bjørnar 16:00'),
-    (target, date '2027-04-05', 'Sun H Bergensdalen 16:00 · last round'),
+    (target, date '2027-01-11', 'Restart'),
+    (target, date '2027-02-08', 'Away weekend'),
+    (target, date '2027-03-08', 'Last loading week'),
+    (target, date '2027-03-15', 'Decide: contender?'),
+    (target, date '2027-03-22', 'Easter'),
+    (target, date '2027-04-05', 'Last round'),
     (target, date '2027-04-12', 'Taper if group winner · end-of-season tests'),
     (target, date '2027-04-19', 'Qualification if group winner (dates TBC)'),
     (target, date '2027-04-26', 'Qualification if group winner (dates TBC)'),
@@ -235,6 +232,64 @@ begin
     (target, date '2027-07-05', 'Summer holiday'),
     (target, date '2027-07-26', 'Return to running')
   on conflict (season_id, week_start) do update set label = excluded.label;
+
+  -- Notes that are matches now, only while they still say what this script once wrote.
+  delete from public.week_notes note
+  using (values
+    (date '2026-08-31', 'No match'),
+    (date '2026-09-07', 'No match'),
+    (date '2026-09-14', 'Sat A Bjørnar 16:00'),
+    (date '2026-09-21', 'Sat H Fyllingen 14:00'),
+    (date '2026-09-28', 'No match'),
+    (date '2026-10-05', 'No match'),
+    (date '2026-10-12', 'Sat H Ros 16:00'),
+    (date '2026-10-19', 'No match'),
+    (date '2026-11-02', 'No match'),
+    (date '2026-11-09', 'No match'),
+    (date '2026-11-16', 'Wed H Gneist 18:00'),
+    (date '2026-11-23', 'Sun H Bækkelaget 16:00'),
+    (date '2026-11-30', 'Sun A Bergensdalen 15:00'),
+    (date '2026-12-07', 'Sun A Viking TIF 2 13:00'),
+    (date '2027-01-18', 'No match'),
+    (date '2027-01-25', 'Sat A BSI 14:30'),
+    (date '2027-02-01', 'Sun H Haslum IL 14:00'),
+    (date '2027-02-15', 'Sun H Viking TIF 2 16:00'),
+    (date '2027-02-22', 'No match'),
+    (date '2027-03-01', '2 matches: Wed A Gneist 19:00 · Sun H Nordstrand 2 14:00'),
+    (date '2027-03-29', 'Sat H Bjørnar 16:00')
+  ) as retired (week_start, label)
+  where note.season_id = target and note.week_start = retired.week_start and note.label = retired.label;
+
+  insert into public.matches (team_id, played_on, kick_off, opponent, home, kind, priority, note, created_by)
+  select target_team, fixture.played_on, fixture.kick_off, fixture.opponent, fixture.home, fixture.kind, fixture.priority, fixture.note, author
+  from (values
+    (date '2026-08-30', time '16:00', 'BSI', true, 'league'::public.match_kind, false, 'League start'),
+    (date '2026-09-19', time '16:00', 'Bjørnar', false, 'league'::public.match_kind, false, ''),
+    (date '2026-09-26', time '14:00', 'Fyllingen', true, 'league'::public.match_kind, false, ''),
+    (date '2026-10-17', time '16:00', 'Ros', true, 'league'::public.match_kind, false, ''),
+    (date '2026-10-31', time '15:00', 'Haslum IL', false, 'league'::public.match_kind, false, 'Away weekend, with long travel'),
+    (date '2026-11-01', time '12:00', 'Nordstrand 2', false, 'league'::public.match_kind, false, 'Away weekend, with long travel'),
+    (date '2026-11-18', time '18:00', 'Gneist', true, 'league'::public.match_kind, false, ''),
+    (date '2026-11-29', time '16:00', 'Bækkelaget', true, 'league'::public.match_kind, false, ''),
+    (date '2026-12-06', time '15:00', 'Bergensdalen', false, 'league'::public.match_kind, false, ''),
+    (date '2026-12-13', time '13:00', 'Viking TIF 2', false, 'league'::public.match_kind, false, ''),
+    (date '2026-12-19', time '16:00', 'Åsane 2', true, 'league'::public.match_kind, false, 'Last match before Christmas'),
+    (date '2027-01-16', time '16:30', 'Fyllingen', false, 'league'::public.match_kind, false, 'First match after the break'),
+    (date '2027-01-30', time '14:30', 'BSI', false, 'league'::public.match_kind, false, ''),
+    (date '2027-02-07', time '14:00', 'Haslum IL', true, 'league'::public.match_kind, false, ''),
+    (date '2027-02-13', time '16:00', 'Ros', false, 'league'::public.match_kind, false, 'Away weekend'),
+    (date '2027-02-14', time '14:00', 'Bækkelaget', false, 'league'::public.match_kind, false, 'Away weekend'),
+    (date '2027-02-21', time '16:00', 'Viking TIF 2', true, 'league'::public.match_kind, false, ''),
+    (date '2027-03-03', time '19:00', 'Gneist', false, 'league'::public.match_kind, false, ''),
+    (date '2027-03-07', time '14:00', 'Nordstrand 2', true, 'league'::public.match_kind, false, ''),
+    (date '2027-03-20', time '14:00', 'Åsane 2', false, 'league'::public.match_kind, false, 'Decide: contender for the group?'),
+    (date '2027-04-03', time '16:00', 'Bjørnar', true, 'league'::public.match_kind, false, ''),
+    (date '2027-04-11', time '16:00', 'Bergensdalen', true, 'league'::public.match_kind, true, 'Last round — can decide the group')
+  ) as fixture (played_on, kick_off, opponent, home, kind, priority, note)
+  where not exists (
+    select 1 from public.matches existing
+    where existing.team_id = target_team and existing.played_on = fixture.played_on and existing.opponent = fixture.opponent
+  );
 
   update public.seasons
   set throughline = 'In every training and competition phase, sprint, jump and lift heavy every week. Only the dose changes.'
