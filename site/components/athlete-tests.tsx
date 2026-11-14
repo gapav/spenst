@@ -3,7 +3,7 @@
 import { ChartLine, Table2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { familyOf, formatChange, formatValue, groupHistory, ordinal, valueHistory, type ComparisonPoint, type DatedResult, type LatestValue, type ProfileTest } from "@/lib/power-profile";
-import { niceTicks } from "@/lib/ovr-data";
+import { detailsOutOf, niceTicks, resultDetailLines } from "@/lib/ovr-data";
 import { cn, formatDay } from "@/lib/utils";
 
 const dayMs = (date: string) => Date.parse(`${date}T00:00:00Z`);
@@ -170,10 +170,18 @@ function ProgressChart({ series, comparison }: { series: Series; comparison: str
       {hover && hovered && <div className={cn("tr-tip", hover.y < 110 && "is-below")} role="tooltip" style={{ left: hover.x, top: hover.y }}>
         <strong>{formatDay(hover.date)}</strong>
         <span>{hovered.mine ? `${formatValue(hovered.mine.value, unit)}${hovered.mine.sides.left !== undefined ? ` (L ${formatValue(hovered.mine.sides.left, unit)} · R ${formatValue(hovered.mine.sides.right ?? 0, unit)})` : ""}` : "Not tested that day"}</span>
+        {hovered.mine && resultDetailLines(hovered.mine).map((line) => <span key={line}>{line}</span>)}
         {hovered.mine && hovered.index > 0 && <span>{formatChange(hovered.mine.value - own[hovered.index - 1].value, unit)} since {shortDay(own[hovered.index - 1].heldOn)}</span>}
         {hovered.theirs && <span>{comparison}: {formatValue(hovered.theirs.average, unit)} ({hovered.theirs.athletes} tested)</span>}
       </div>}
     </div>
+    {own.some((point) => point.details || point.sideDetails.left || point.sideDetails.right) && <ul className="at-history" aria-label={`${test.test.name}, every test day`}>
+      {[...own].reverse().map((point) => <li key={point.testDayId}>
+        <span>{shortDay(point.heldOn)}</span>
+        <strong>{formatValue(point.value, unit)}</strong>
+        <span className="attempt-summary">{resultDetailLines(point).join(" · ") || "Typed in"}{point.details && detailsOutOf(point.details) ? ` · ${detailsOutOf(point.details)}` : ""}</span>
+      </li>)}
+    </ul>}
     <div className="lv-legend">
       <span><i className="at-key-own" />This athlete</span>
       <span><i className="at-key-group" />{comparison}</span>
@@ -188,7 +196,7 @@ function TestsTable({ tests }: { tests: readonly ProfileTest[] }) {
       <thead><tr><th scope="col">Test</th><th scope="col" className="num">Result</th><th scope="col" className="num">Since last</th><th scope="col" className="num">In the squad</th></tr></thead>
       <tbody>{tests.map((test) => <tr key={test.test.key}>
         <th scope="row" className="font-semibold" data-family={familyOf(test.test)}><span className="flex items-center gap-2"><i className="family-dot" />{test.test.name}</span>{test.latest && <small className="block text-xs font-normal text-[var(--ink-soft)]">{formatDay(test.latest.heldOn)}</small>}</th>
-        <td className="num">{test.latest ? formatValue(test.latest.value, test.test.unit) : "–"}</td>
+        <td className="num">{test.latest ? formatValue(test.latest.value, test.test.unit) : "–"}{resultDetailLines(test.latest).map((line) => <small key={line} className="attempt-summary">{line}</small>)}</td>
         <td className="num">{test.change === null ? <span className="text-[var(--ink-faint)]">–</span> : <span className={cn("change", test.improved === true && "is-better", test.improved === false && "is-worse")}>{formatChange(test.change, test.test.unit)}</span>}</td>
         <td className="num">{test.rank !== null ? <span className="tabular">{ordinal(test.rank)} <span className="text-[var(--ink-soft)]">of {test.ranked}</span></span> : "–"}</td>
       </tr>)}</tbody>

@@ -1,6 +1,7 @@
 import { TESTS, type TestKey } from "./power-profile";
 import { minimizeAthleteName } from "./roster";
-import type { Athlete, Side, TestDay, TestResult } from "./types";
+import { detailsForResults } from "./ovr-data";
+import type { AttemptDetails, Side, TestDay, TestResult, Athlete } from "./types";
 import type { SheetRows } from "./xlsx";
 
 /**
@@ -424,6 +425,8 @@ export interface PlannedResult {
   testKey: TestKey;
   side: Side | null;
   value: number;
+  /** The attempt the value is: every number OVR wrote for that rep, jump or run (decision 27). */
+  details: AttemptDetails | null;
   existing: number | null;
   status: ValueStatus;
 }
@@ -455,7 +458,7 @@ export function planImport(input: {
 }): ImportPlan {
   const { data, mappings, matches } = input;
   let unmatchedRows = 0;
-  const best = new Map<string, Omit<PlannedResult, "existing" | "status">>();
+  const best = new Map<string, Omit<PlannedResult, "existing" | "status" | "details">>();
   const legs = legsOf(data.velocity, mappings);
   const offer = (row: OvrRowBase, mapping: OvrMapping | undefined, value: number | null, leg: Side | null = null) => {
     if (!mapping?.testKey || value === null || !(value > 0)) return;
@@ -473,6 +476,9 @@ export function planImport(input: {
   data.velocity.forEach((rep) => offer(rep, mappings.get(measureKey("velocity", rep.exercise)), rep.peakPower, legs.get(rep) ?? null));
   data.jump.forEach((jump) => offer(jump, mappings.get(measureKey("jump", jump.exercise)), jump.heightCm));
   sprintTimes(data.sprint).forEach((time) => offer(time, mappings.get(measureKey("sprint", time.exercise, time.distanceM)), time.time));
+  // Each value's attempt, read from the rows as they will be stored — the same rule the test day and the backfill use.
+  const chosen = [...best.values()];
+  const details = detailsForResults(chosen, ovrRows(data, matches, legs), (key) => mappings.get(key) ?? null);
 
   const teamDays = input.testDays.filter((day) => day.teamId === input.teamId);
   const dayOn = (date: string) => teamDays.filter((day) => day.heldOn === date).sort((a, b) => a.id.localeCompare(b.id))[0] ?? null;
@@ -483,7 +489,8 @@ export function planImport(input: {
     return entry;
   };
 
-  for (const planned of best.values()) {
+  for (const [index, found] of chosen.entries()) {
+    const planned = { ...found, details: details[index] };
     const entry = dateEntry(planned.date);
     const existing = entry.testDayId
       ? input.results.find((result) => result.testDayId === entry.testDayId && result.athleteId === planned.athleteId && result.testKey === planned.testKey && result.side === planned.side)?.value ?? null
@@ -517,7 +524,7 @@ export function importWrites(plan: ImportPlan, choices: ImportChoices): ImportWr
     if (!choices.dates.has(entry.date)) continue;
     const results = entry.results.filter((result) => result.status === "new" || (result.status === "differs" && choices.replaceDiffering));
     if (results.length && !entry.testDayId) writes.newTestDays.push(entry.date);
-    writes.results.push(...results.map((result) => ({ date: result.date, athleteId: result.athleteId, testKey: result.testKey, side: result.side, value: result.value, testDayId: entry.testDayId })));
+    writes.results.push(...results.map((result) => ({ date: result.date, athleteId: result.athleteId, testKey: result.testKey, side: result.side, value: result.value, details: result.details, testDayId: entry.testDayId })));
   }
   return writes;
 }

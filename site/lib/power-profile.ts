@@ -1,5 +1,5 @@
 import { ageClass } from "./maturity";
-import type { Athlete, Population, Side, TestDay, TestResult } from "./types";
+import type { AttemptDetails, Athlete, Population, Side, TestDay, TestResult } from "./types";
 
 /**
  * The test battery, after David Ballou's power profile, rebuilt for the gear a
@@ -168,6 +168,10 @@ export interface LatestValue {
   sides: Partial<Record<Side, number>>;
   heldOn: string;
   testDayId: string;
+  /** The OVR attempt behind the value (decision 27); null when typed by hand. */
+  details: AttemptDetails | null;
+  /** A sided test's attempt per leg. */
+  sideDetails: Partial<Record<Side, AttemptDetails>>;
 }
 
 /**
@@ -187,12 +191,17 @@ export function valueHistory(results: readonly DatedResult[]): Map<string, Lates
     const test = testDefinition(testKey);
     let candidate: LatestValue | null = null;
     if (test?.sided) {
-      const left = group.find((result) => result.side === "left")?.value;
-      const right = group.find((result) => result.side === "right")?.value;
-      if (left !== undefined && right !== undefined) candidate = { value: (left + right) / 2, sides: { left, right }, heldOn, testDayId };
+      const leftResult = group.find((result) => result.side === "left");
+      const rightResult = group.find((result) => result.side === "right");
+      if (leftResult && rightResult) {
+        const sideDetails: Partial<Record<Side, AttemptDetails>> = {};
+        if (leftResult.details) sideDetails.left = leftResult.details;
+        if (rightResult.details) sideDetails.right = rightResult.details;
+        candidate = { value: (leftResult.value + rightResult.value) / 2, sides: { left: leftResult.value, right: rightResult.value }, heldOn, testDayId, details: null, sideDetails };
+      }
     } else {
       const single = group.find((result) => result.side === null);
-      if (single) candidate = { value: single.value, sides: {}, heldOn, testDayId };
+      if (single) candidate = { value: single.value, sides: {}, heldOn, testDayId, details: single.details ?? null, sideDetails: {} };
     }
     if (candidate) history.set(testKey, [...(history.get(testKey) ?? []), candidate]);
   }

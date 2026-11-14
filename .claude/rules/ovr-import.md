@@ -44,6 +44,14 @@ paths:
   attempt charts and a table view. Attempts come from `testAttempts`
   (`lib/ovr-data.ts`) over `loadOvrRowsForDay`. Only tape and My Jump tests keep
   the typed entry rows.
+- **A result keeps its best attempt** (decision 27): `test_results.details`
+  is every number of the rep, jump or run that gave the value, picked by
+  `detailsForResults` (`lib/ovr-data.ts`) over the rows as stored — used by
+  `planImport`, the demo data and, in SQL, the backfill data script. Typed
+  results have none. `ATTEMPT_METRICS` lists every rankable column with its
+  direction (TPV and duration: lower is better); load is `ATTEMPT_CONTEXT`,
+  shown, never ranked. `RESULT_METRICS` is the same under stored names, for
+  the leaderboard.
 - Exercise → test/lift mappings are per team (`ovr_mappings`). The raw file
   goes to the private `ovr-exports` bucket (`<team>/<import>/<file>`), and
   results/readings carry `import_id` so an import can be undone.
