@@ -43,7 +43,7 @@ export function cleanNewAthlete(input: NewAthleteInput, asOf: Date): CleanNewAth
   if (!name) return { problem: "Write the athlete’s name." };
   if (name.length > 80) return { problem: "That name is too long." };
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.birthMonth)) return { problem: "Choose the birth month." };
-  if (!meetsMinimumAge(input.birthMonth, asOf)) return { problem: `Spenst is for athletes from the year they turn ${MIN_AGE_CLASS}.` };
+  if (!meetsMinimumAge(input.birthMonth, asOf)) return { problem: `Röskr is for athletes from the year they turn ${MIN_AGE_CLASS}.` };
   if (!input.sex) return { problem: "Choose the athlete’s sex." };
   return { ...input, name, sex: input.sex };
 }

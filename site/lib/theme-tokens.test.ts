@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
  * token, and `globals.css` decides what it is in each theme. These tests keep
  * it that way: a literal colour in a component, a token only one theme
  * defines, or a palette tweak that drops a text pair below AA fails here
- * rather than on a coach's phone at 22:00. Copied from Grep, plus Spenst's
+ * rather than on a coach's phone at 22:00. Copied from Grep, plus Röskr's
  * own tokens.
  */
 const root = path.resolve(import.meta.dirname, "..");
@@ -98,14 +98,27 @@ describe("theme tokens", () => {
     ...[1, 2, 3].map((band): [string, string, number] => ["--on-accent", `--tag-band-${band}-fill`, 4.5]),
     ...["apricot", "lilac", "sage", "blue", "rose", "honey"]
       .map((team): [string, string, number] => ["--ink", `--team-${team}-tint`, 4.5]),
-    // Spenst's own: the signature under its label, the five tier chips, and the
+    // Röskr's own: the signature under its label, brass (the mark and the
+    // squad best) as a mark on paper and card, the five tier chips, and the
     // chart marks against the card they are drawn on.
-    ["--on-bright", "--signature", 4.5],
-    ["--on-bright", "--signature-hover", 4.5],
+    ["--on-signature", "--signature", 4.5],
+    ["--on-signature", "--signature-hover", 4.5],
+    ["--mark", "--paper", 3],
+    ["--mark", "--surface", 3],
+    ["--mark", "--chrome", 3],
+    ["--best", "--surface", 3],
+    // The season plan's phases, blocks and matches.
+    ...["training", "competition", "break"].map((kind): [string, string, number] => [`--phase-${kind}-ink`, `--phase-${kind}`, 4.5]),
+    ...["absolute-strength", "accelerative-strength", "strength-speed", "speed-strength"]
+      .map((emphasis): [string, string, number] => [`--block-${emphasis}-ink`, `--block-${emphasis}`, 4.5]),
+    ["--match", "--match-bg", 4.5],
+    ["--match", "--surface", 3],
     ...[1, 2, 3, 4, 5].map((tier): [string, string, number] => [`--tier-${tier}-ink`, `--tier-${tier}`, 4.5]),
     ...[1, 2, 3, 4, 5].map((tier): [string, string, number] => [`--tier-${tier}-mark`, "--surface", 2]),
     ["--chart-series", "--surface", 3],
     ["--chart-reference", "--surface", 3],
+    ...["strength", "power", "plyometric", "sprint", "prep"]
+      .map((family): [string, string, number] => [`--mix-${family}`, "--surface", 3]),
   ];
 
   for (const [themeName, theme] of [["light", light], ["dark", dark]] as const) {

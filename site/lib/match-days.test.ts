@@ -7,37 +7,26 @@ const match = (playedOn: string, kickOff: string | null = null, opponent = "Lyn"
 
 // 2026-10-12 is a Monday.
 describe("matchDayLabel", () => {
-  it("labels a Saturday-only week from MD-5 to MD and on to MD+1", () => {
+  it("labels a Saturday-only week from MD-5 to MD, and nothing after it", () => {
     const matches = [match("2026-10-17")];
     expect(matchDayLabel("2026-10-12", matches)?.label).toBe("MD-5");
     expect(matchDayLabel("2026-10-16", matches)?.label).toBe("MD-1");
     expect(matchDayLabel("2026-10-17", matches)?.label).toBe("MD");
-    expect(matchDayLabel("2026-10-18", matches)).toMatchObject({ label: "MD+1", other: null });
+    expect(matchDayLabel("2026-10-18", matches)).toBeNull();
   });
 
-  it("gives Thursday of a Wednesday + Saturday week the nearer match, with the other in `other`", () => {
-    const matches = [match("2026-10-14"), match("2026-10-17")];
-    expect(matchDayLabel("2026-10-15", matches)).toMatchObject({ label: "MD+1", other: "MD-2" });
-    expect(matchDayLabel("2026-10-14", matches)?.label).toBe("MD");
+  it("counts every day towards the next match, however recent the last one", () => {
+    const wednesdayAndSaturday = [match("2026-10-14"), match("2026-10-17")];
+    expect(matchDayLabel("2026-10-14", wednesdayAndSaturday)?.label).toBe("MD");
+    expect(matchDayLabel("2026-10-15", wednesdayAndSaturday)).toMatchObject({ label: "MD-2", match: { playedOn: "2026-10-17" } });
+    const sundayAndWednesday = [match("2026-10-11"), match("2026-10-14")];
+    expect(matchDayLabel("2026-10-12", sundayAndWednesday)?.label).toBe("MD-2");
   });
 
-  it("lets the next match win a tie", () => {
-    // Saturday and the following Saturday: Wednesday is MD+4 and MD-3; Tuesday is MD+3 and MD-4.
-    const matches = [match("2026-10-10"), match("2026-10-17")];
-    expect(matchDayLabel("2026-10-13", matches)).toMatchObject({ label: "MD+3", other: "MD-4" });
-    const tie = [match("2026-10-10"), match("2026-10-16")];
-    expect(matchDayLabel("2026-10-13", tie)).toMatchObject({ label: "MD-3", other: "MD+3" });
-  });
-
-  it("handles a Sunday match followed by a Wednesday match", () => {
-    const matches = [match("2026-10-11"), match("2026-10-14")];
-    expect(matchDayLabel("2026-10-12", matches)).toMatchObject({ label: "MD+1", other: "MD-2" });
-    expect(matchDayLabel("2026-10-13", matches)).toMatchObject({ label: "MD-1", other: "MD+2" });
-  });
-
-  it("returns null with no match within seven days", () => {
+  it("returns null with no match in the next seven days", () => {
     expect(matchDayLabel("2026-10-12", [match("2026-10-20")])).toBeNull();
     expect(matchDayLabel("2026-10-12", [match("2026-10-19")])?.label).toBe("MD-7");
+    expect(matchDayLabel("2026-10-12", [match("2026-10-11")])).toBeNull();
     expect(matchDayLabel("2026-10-12", [])).toBeNull();
   });
 });

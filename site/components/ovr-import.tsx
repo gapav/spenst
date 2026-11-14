@@ -7,6 +7,7 @@ import { useSpenst } from "./app-provider";
 import { AppShell } from "./app-shell";
 import { PageHeading } from "./page-heading";
 import { Button, EmptyState, Tag } from "./ui";
+import { WinButton } from "./win";
 import {
   ALTERNATING_SET_REPS, alternatingIssues, defaultDates, exportedAt, importWrites, legsOf, matchAthletes, OvrFormatError, ovrMeasures, ovrRows, parseOvrExport, planImport, rememberedMatches,
   sameFileImport, sha256Hex, suggestMapping, testsFor, type OvrExport, type OvrMapping, type OvrMeasure, type PlannedDate, type TestImport, type ValueStatus,
@@ -61,7 +62,7 @@ export function OvrImport() {
 
   return <AppShell><div className="spenst-page">
     <Link href="/testing" className="mb-4 inline-flex items-center gap-2 text-sm text-[var(--ink-soft)] underline underline-offset-4 hover:text-[var(--ink)]"><ArrowLeft size={16} />Testing</Link>
-    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Import from OVR" description="Upload the export from OVR Connect. It holds everyone’s whole history; Spenst keeps the file, finds what’s new, fills in the test days and keeps every rep." />
+    <PageHeading eyebrow={currentTeam?.name ?? "Röskr"} title="Import from OVR" description="Upload the export from OVR Connect. It holds everyone’s whole history; Röskr keeps the file, finds what’s new, fills in the test days and keeps every rep." />
     {!workspaceLoaded ? <p role="status" className="spenst-loading">Loading …</p> : !currentTeam
       ? <EmptyState icon={<FileSpreadsheet size={24} />} title="No teams yet" body="When you are added to a team, you can import its OVR data here." />
       : <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
@@ -201,17 +202,17 @@ function ImportReview({ loaded, onCancel, onDone }: { loaded: Loaded; onCancel()
     <section className="spenst-card overflow-hidden" aria-labelledby="import-dates">
       <div className="spenst-section-heading"><div>
         <h2 id="import-dates">What’s new</h2>
-        <p>Dates with something Spenst doesn’t have yet are ticked. A value typed by hand is kept unless you choose to replace it.</p>
+        <p>Dates with something Röskr doesn’t have yet are ticked. A value typed by hand is kept unless you choose to replace it.</p>
       </div></div>
       {!plan.dates.length && <p className="import-empty">Nothing in the file goes anywhere yet: match the athletes and choose what the exercises are.</p>}
       <div className="import-rows">
         {withNews.map((entry) => <DateRow key={entry.date} entry={entry} checked={included.has(entry.date)} onCheck={(checked) => setDateChoices((current) => ({ ...current, [entry.date]: checked }))} />)}
       </div>
       {without.length > 0 && <details className="import-more">
-        <summary><ChevronDown size={16} />{countLabel(without.length, "date", "dates")} already in Spenst</summary>
+        <summary><ChevronDown size={16} />{countLabel(without.length, "date", "dates")} already in Röskr</summary>
         <div className="import-rows">{without.map((entry) => <DateRow key={entry.date} entry={entry} checked={false} onCheck={() => undefined} />)}</div>
       </details>}
-      {differing > 0 && <label className="import-replace"><input type="checkbox" checked={replace} onChange={(event) => setReplace(event.target.checked)} />Replace {countLabel(differing, "value", "values")} that differ from what Spenst has</label>}
+      {differing > 0 && <label className="import-replace"><input type="checkbox" checked={replace} onChange={(event) => setReplace(event.target.checked)} />Replace {countLabel(differing, "value", "values")} that differ from what Röskr has</label>}
     </section>
 
     <div className="import-actions">
@@ -219,7 +220,7 @@ function ImportReview({ loaded, onCancel, onDone }: { loaded: Loaded; onCancel()
         ? "Nothing new to import."
         : <>Keeps <strong>{countLabel(rows.length, "OVR row", "OVR rows")}</strong>, and imports <strong>{countLabel(writes.results.length, "test result", "test results")}</strong>{writes.newTestDays.length ? ` on ${countLabel(writes.newTestDays.length, "new test day", "new test days")}` : ""}. The file is kept with the import.</>}</p>
       {failure && <p role="alert" className="text-sm text-[var(--danger)]">{failure}</p>}
-      <Button disabled={busy || nothing} onClick={() => void run()}>{busy ? "Importing …" : "Import"}</Button>
+      <WinButton kind="lights" disabled={busy || nothing} onClick={() => void run()} text={writes.results.length ? countLabel(writes.results.length, "result", "results") : countLabel(freshRows, "row", "rows")}>{busy ? "Importing …" : "Import"}</WinButton>
     </div>
   </>;
 }
@@ -246,7 +247,7 @@ function MeasureRow({ measure, mapping, onChange }: { measure: OvrMeasure; mappi
     <div className="min-w-0 flex-1">
       <strong><Tag tone="neutral">{sheetLabels[measure.kind]}</Tag> {measureLabel(measure)}</strong>
       <small>{countLabel(measure.athletes, "athlete", "athletes")} · {countLabel(measure.rows, measure.kind === "sprint" ? "time" : "rep", measure.kind === "sprint" ? "times" : "reps")} · latest {formatDay(measure.latest, { day: "numeric", month: "short", year: "numeric" })}</small>
-      {proAgility && !mapping.testKey && <small className="text-[var(--warn-ink)]">Pro agility (5-10-5) isn’t the 505, and Spenst has no test for it yet.</small>}
+      {proAgility && !mapping.testKey && <small className="text-[var(--warn-ink)]">Pro agility (5-10-5) isn’t the 505, and Röskr has no test for it yet.</small>}
     </div>
     <div className="import-mapping">
       <label><span>Test</span>
@@ -291,7 +292,7 @@ function DateRow({ entry, checked, onCheck }: { entry: PlannedDate; checked: boo
     </summary>
     <div className="import-date-body">
       {entry.results.length > 0 && <table className="data-table import-values">
-        <thead><tr><th scope="col">Athlete</th><th scope="col">Test</th><th scope="col" className="num">From OVR</th><th scope="col" className="num">In Spenst</th><th scope="col"><span className="sr-only">Status</span></th></tr></thead>
+        <thead><tr><th scope="col">Athlete</th><th scope="col">Test</th><th scope="col" className="num">From OVR</th><th scope="col" className="num">In Röskr</th><th scope="col"><span className="sr-only">Status</span></th></tr></thead>
         <tbody>{[...entry.results].sort((a, b) => name(a.athleteId).localeCompare(name(b.athleteId)) || a.testKey.localeCompare(b.testKey)).map((result) => <tr key={`${result.athleteId}-${result.testKey}-${result.side}`}>
           <th scope="row">{name(result.athleteId)}</th>
           <td>{TESTS[result.testKey].name}{result.side ? `, ${result.side}` : ""}</td>

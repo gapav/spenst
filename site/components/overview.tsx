@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSpenst } from "./app-provider";
 import { AppShell } from "./app-shell";
+import { WinButton } from "./win";
 import { overviewHeadline, overviewHeadlines, overviewSalutation } from "@/lib/overview";
 import { asymmetryFlags, summarizeSquad, teamAthletes, testDayProgress } from "@/lib/squad";
 import { batteryFor, familyOf, formatValue, TESTS } from "@/lib/power-profile";
@@ -48,18 +49,18 @@ export function Overview() {
   }
 
   return <AppShell><div className="overview">
-    <div className="overview-topbar"><span className="overview-team">{currentTeam?.name ?? "Spenst"}</span></div>
+    <div className="overview-topbar"><span className="overview-team">{currentTeam?.name ?? "Röskr"}</span></div>
     <header className="overview-welcome">
       <p className="overview-greeting">{overviewSalutation(now)}, {firstName}</p>
       <h1>{headline}</h1>
-      <button className="spenst-action" onClick={() => void startTestDay()} disabled={creating || loading || !currentTeam}>
+      <WinButton plain kind="gun" className="spenst-action" onClick={() => void startTestDay()} disabled={creating || loading || !currentTeam}>
         {creating ? "Setting up …" : "New test day"}<ArrowRight size={19} />
-      </button>
+      </WinButton>
       <div className="overview-art-crop" aria-hidden="true"><OverviewArt /></div>
     </header>
     {error && <p role="alert" className="spenst-context-note">{error}</p>}
     {loading ? <div className="spenst-loading" role="status">Loading the team’s tests …</div> : !currentTeam
-      ? <section className="overview-card overview-lead"><Users size={26} /><h2>Welcome to Spenst</h2><p className="text-[var(--ink-soft)]">When you are added to a team, its athletes and tests show up here.</p></section>
+      ? <section className="overview-card overview-lead"><Users size={26} /><h2>Welcome to Röskr</h2><p className="text-[var(--ink-soft)]">When you are added to a team, its athletes and tests show up here.</p></section>
       : <>
         <div className="overview-cards">
           <section className="overview-card overview-lead" aria-labelledby="latest-day-heading">
@@ -91,8 +92,8 @@ export function Overview() {
 }
 
 /**
- * Decorative: a power profile standing in for Grep’s court. Seven spokes, as
- * in Spenst 7; the dashed ring is the squad’s best, and the one test this
+ * Decorative: a power profile on a night panel. Seven spokes, as in
+ * Spenst 7; the dashed ring is the squad’s best, and the one test this
  * profile leads touches it. The centre is the viewBox’s, so CSS places it.
  */
 function OverviewArt() {
@@ -108,8 +109,8 @@ function OverviewArt() {
   return <svg className="overview-art" viewBox="-135 -178 270 270" focusable="false">
     <polygon className="art-shape" points={outline([1, 0.7, 0.8, 0.62, 0.74, 0.64, 0.84])} />
     <polygon className="art-grid" points={ring(0.5)} />
-    {/* Long enough to leave the widest crop. */}
-    {Array.from({ length: spokes }, (_, index) => { const [x, y] = at(index, 6); return <line key={index} className="art-grid" x1={0} y1={0} x2={x.toFixed(1)} y2={y.toFixed(1)} />; })}
+    <polygon className="art-grid" points={ring(0.75)} />
+    {Array.from({ length: spokes }, (_, index) => { const [x, y] = at(index, 1); return <line key={index} className="art-grid" x1={0} y1={0} x2={x.toFixed(1)} y2={y.toFixed(1)} />; })}
     <polygon className="art-best" points={ring(1)} />
     <circle className="art-peak" cx={peakX.toFixed(1)} cy={peakY.toFixed(1)} r={8} />
   </svg>;

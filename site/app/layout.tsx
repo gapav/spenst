@@ -5,20 +5,22 @@ import { ThemeAttribute } from "@/components/theme-switch";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
-// Grep’s typeface, so the two apps read as one family.
-const dmSans = localFont({ src: "../public/fonts/dm-sans-latin-variable.ttf", variable: "--font-grep", display: "swap", weight: "100 1000" });
+// Inter for everything, with tabular figures so columns of results line up;
+// Inter Tight for the wordmark and page titles (decision 26).
+const inter = localFont({ src: "../public/fonts/inter-latin-variable.woff2", variable: "--font-ui", display: "swap", weight: "100 900" });
+const interTight = localFont({ src: "../public/fonts/inter-tight-latin-variable.woff2", variable: "--font-display", display: "swap", weight: "100 900" });
 
 export const metadata: Metadata = {
-  title: { default: "Spenst — Testing, planning and power profiles for your team", template: "%s · Spenst" },
+  title: { default: "Röskr — Testing, planning and power profiles for your team", template: "%s · Röskr" },
   description: "Test sprints, jumps and bar speed, plan the season, and follow every athlete’s power profile — for youth and senior teams.",
-  applicationName: "Spenst",
-  appleWebApp: { capable: true, title: "Spenst", statusBarStyle: "default" },
+  applicationName: "Röskr",
+  appleWebApp: { capable: true, title: "Röskr", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#2e1b3d" },
-    { media: "(prefers-color-scheme: dark)", color: "#16111b" },
+    { media: "(prefers-color-scheme: light)", color: "#0e2433" },
+    { media: "(prefers-color-scheme: dark)", color: "#08141c" },
   ],
   colorScheme: "light dark",
 };
@@ -27,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `data-theme` is written by the script below before the first paint, so
     // the server’s <html> never matches the browser’s — hence the suppression.
-    <html lang="en" className={dmSans.variable} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${interTight.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

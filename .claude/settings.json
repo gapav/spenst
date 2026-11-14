@@ -19,7 +19,8 @@
       "Bash(npm run db:push)",
       "Bash(npm run db:backup)",
       "Bash(npm run db:baseline *)",
-      "Bash(npm run db:sql *)"
+      "Bash(npm run db:sql *)",
+      "Read(~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C/wiki/**)"
     ],
     "deny": [
       "Bash(supabase db *)",

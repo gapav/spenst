@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSpenst } from "@/components/app-provider";
 import { AppShell } from "@/components/app-shell";
@@ -16,6 +16,7 @@ import { Avatar, EmptyState, Tag } from "@/components/ui";
 import { populationLabels, positionLabels } from "@/lib/labels";
 import { ageInYears } from "@/lib/maturity";
 import { teamAthletes } from "@/lib/squad";
+import { HelpTip } from "@/components/help-tip";
 
 export default function TeamPage() {
   const { currentTeam, user, athletes, workspaceLoaded } = useSpenst();
@@ -31,15 +32,14 @@ export default function TeamPage() {
   ];
 
   return <AppShell><div className="spenst-page">
-    <PageHeading eyebrow={currentTeam ? populationLabels[currentTeam.population] : "Spenst"} title={currentTeam?.name ?? "Team"} description="The squad, the coaching staff and your settings." actions={currentTeam && <div className="flex items-center gap-3"><CreateTeamButton /><TeamCrest team={currentTeam} size="lg" /></div>} />
+    <PageHeading eyebrow={currentTeam ? populationLabels[currentTeam.population] : "Röskr"} title={currentTeam?.name ?? "Team"} description="The squad, the coaching staff and your settings." actions={currentTeam && <div className="flex items-center gap-3"><CreateTeamButton /><TeamCrest team={currentTeam} size="lg" /></div>} />
     {!workspaceLoaded ? <p role="status" className="spenst-loading">Loading the team …</p> : !currentTeam
       ? <EmptyState icon={<Users size={24} />} title="You are not on a team yet" body={user?.isGlobalAdmin ? "Create the first team, and you’ll find the squad and the coaching staff here." : "When you are added to a team, you’ll find the squad and the coaching staff here."} action={<CreateTeamButton variant="primary" />} />
       : <>
         <div className="spenst-segments" role="group" aria-label="Show team information">{tabs.map((tab) => <button key={tab.id} aria-pressed={view === tab.id} onClick={() => setView(tab.id)}>{tab.label}{tab.count !== null && <span>{tab.count}</span>}</button>)}</div>
         <div className="mt-6">
           {view === "athletes" && <>
-            {currentTeam.role === "admin" && <div className="mb-5"><AddAthleteButton /></div>}
-            <div className="spenst-context-note mb-5"><ShieldCheck size={19} /><p>Only the coaching staff can see the squad. We store names as “Firstname L.”, the birth month and — only with consent — height and weight.</p></div>
+            <div className="mb-5 flex items-center gap-2">{currentTeam.role === "admin" && <AddAthleteButton />}<HelpTip label="Who sees the squad">Only the coaching staff can see the squad. We store names as “Firstname L.”, the birth month and — only with consent — height and weight.</HelpTip></div>
             <section className="spenst-card spenst-rows overflow-hidden">
               {squad.map((athlete) => <div key={athlete.id} className="athlete-row">
                 <div className="athlete-row-copy"><strong><Link href={`/athletes/${athlete.id}`} className="hover:underline">{athlete.displayName}</Link></strong><small>{[now && `${ageInYears(athlete.birthMonth, now)} years`, athlete.position && positionLabels[athlete.position]].filter(Boolean).join(" · ")}</small></div>

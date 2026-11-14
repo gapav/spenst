@@ -1,11 +1,13 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Copy, Info, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useSpenst } from "./app-provider";
 import { Button, inputClass, Tag } from "./ui";
 import { batteryFor, BUILTIN_BATTERIES, deviceLabels, familyOf, TESTS, type Device, type Quality, type TestBattery, type TestKey } from "@/lib/power-profile";
-import { cn } from "@/lib/utils";
+import { cn, countLabel } from "@/lib/utils";
+import { HelpTip } from "./help-tip";
+import { WinButton } from "./win";
 
 const qualityLabels: Record<Quality, string> = {
   acceleration: "Acceleration",
@@ -41,7 +43,6 @@ export function BatterySettings() {
   }
 
   return <div className="grid gap-5">
-    <div className="spenst-context-note"><Info size={18} /><p>The battery decides which tests a test day has, the order of the radar, the leaderboard lists and the squad bests. {isAdmin ? "Results are kept whichever battery is in use — switching only changes what is shown." : "Only a team admin can change which battery the team uses; any coach can make new ones."}</p></div>
     {problem && <p role="alert" className="text-sm text-[var(--danger)]">{problem}</p>}
 
     {draft
@@ -51,7 +52,7 @@ export function BatterySettings() {
         // A new battery the admin made is most likely the one they want.
         if (!saved.id && isAdmin) await setTeamBattery(currentTeam.id, id);
       })} />
-      : <div><Button onClick={() => setDraft({ name: "", description: "", tests: [] })}><Plus size={16} />New battery</Button></div>}
+      : <div className="flex items-center gap-2"><Button onClick={() => setDraft({ name: "", description: "", tests: [] })}><Plus size={16} />New battery</Button><HelpTip label="What a battery does">The battery decides which tests a test day has, the order of the radar, the leaderboard lists and the squad bests. {isAdmin ? "Results are kept whichever battery is in use — switching only changes what is shown." : "Only a team admin can change which battery the team uses; any coach can make new ones."}</HelpTip></div>}
 
     <div className="battery-list">
       {all.map((battery) => <article key={battery.id} className={cn("battery-card", battery.id === current.id && "is-current")} aria-label={battery.name}>
@@ -143,7 +144,9 @@ function BatteryEditor({ draft, onCancel, onSave }: { draft: Draft; onCancel(): 
 
     <footer>
       <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-      <Button disabled={!valid} onClick={() => onSave({ id: draft.id, name, description, tests })}>{draft.id ? "Save" : "Create battery"}</Button>
+      {draft.id
+        ? <Button disabled={!valid} onClick={() => onSave({ id: draft.id, name, description, tests })}>Save</Button>
+        : <WinButton kind="charge" disabled={!valid} text={countLabel(tests.length, "test", "tests")} onClick={() => onSave({ id: draft.id, name, description, tests })}>Create battery</WinButton>}
     </footer>
   </section>;
 }

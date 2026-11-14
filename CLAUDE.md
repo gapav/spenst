@@ -21,12 +21,17 @@ All application code lives in `site/`. At the root:
 - `.claude/rules/` — notes for one area each, loaded when you open its files.
 - `site/AGENTS.md` (aliased by `site/CLAUDE.md`) — the working rules.
 
-Spenst is a **separate product** from Grep (`~/code/plannr`): its own Supabase
+The product is **Röskr** (decision 26; `roskr` in URLs and code). “Spenst” was
+its working title and survives in internal names — the repository,
+`useSpenst`, the `spenst-` classes — which are not renamed yet.
+
+Röskr is a **separate product** from Grep (`~/code/plannr`): its own Supabase
 project, accounts, teams and exercise library, and no data shared between them.
-It deliberately shares Grep's stack, versions, design tokens, shell and
-data-layer pattern, copied as code. When something is copied from Grep it says
-so in a comment; keep the *visual* layer (tokens, shell, primitives) in step
-with Grep, but never couple the two apps' data or deployments.
+It deliberately shares Grep's stack, versions, token names, shell, UI
+primitives and data-layer pattern, copied as code. When something is copied
+from Grep it says so in a comment; keep the shell and primitives in step with
+Grep, but not the palette or the font (Röskr's own since decision 26), and
+never couple the two apps' data or deployments.
 
 The S&C knowledge behind the domain lives in the maintainer's Obsidian vault,
 `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/S&C`. Its `wiki/` is
@@ -77,6 +82,12 @@ locally: the `run-locally` skill.
 - **The UI is in English**, formatted as `en-GB` ("6 Oct", "1.23 s",
   "1,513 W", metric units). Typed decimals accept a comma as well as a point.
   Use typographic quotes and apostrophes (“ ” ’) in copy.
+- **How-to text never sits on the page.** Instructions (“Drag across empty
+  weeks…”, “Click a name for…”, what a legend or table means) go in a
+  `HelpTip` (`components/help-tip.tsx`) — a question mark next to the
+  controls it explains, shown on hover, focus or click. What stays visible:
+  status (“This file was imported on…”), errors, and an empty state's one
+  line with its action.
 - Keep secrets out of `NEXT_PUBLIC_*`. There are no server-side secrets yet.
 
 ## Architecture
@@ -142,10 +153,16 @@ it). A sided test only counts when both legs come from the same test day.
 
 ### Styling
 
-Tailwind v4 with Grep's tokens copied verbatim into `app/globals.css`, plus
-Spenst's own below them: `--signature` (lime; Grep's is apricot), the tier ramp
-`--tier-1…5` (with `-ink`, now only a sequential ramp for e.g. sprint splits) and `--tier-1…5-mark` (marks,
-≥2:1 on the card), and `--chart-*`. `<html data-theme>` holds the resolved
+Tailwind v4 with Grep's token *names* in `app/globals.css` and Röskr's own
+values, the “Fjord” palette (decision 26): night ink on ice paper,
+`--signature` fjord blue for the primary action and current page (its label
+is `--on-signature`, white in light and night in dark), brass `--mark` and
+`--best` for the logo and the squad best only, the tier ramp `--tier-1…5`
+(with `-ink`, a sequential fjord ramp for e.g. sprint splits) and
+`--tier-1…5-mark` (marks, ≥2:1 on the card), and `--chart-*`. Type is Inter
+(`--font-ui`) with tabular figures on the body, and Inter Tight
+(`--font-display`) for the wordmark and page titles; both are local woff2
+files in `public/fonts/`. `<html data-theme>` holds the resolved
 theme, set before first paint by `themeScript` (`lib/theme.ts`, key
 `spenst-theme`). The shell classes are Grep's with the prefix `spenst-`.
 

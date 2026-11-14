@@ -143,11 +143,30 @@ reasoning is not lost.
     shows the full builder in a side drawer over the plan, with the URL
     updated; on a phone it stays a page. The block overview's exercise ×
     week matrix is read-only. Editing progressions in it is #14.
+25. **Match-day labels count down only** (decided 13 November 2026),
+    replacing the nearer-match rule in decision 24. A day is MD on a match
+    and MD-n before the next match within seven days; there are no MD+
+    labels. What a day is for is decided by the match coming, so a day after
+    a match is labelled by the next one (Thursday after a Wednesday match is
+    MD-2 before Saturday), or not at all.
+26. **The product is Röskr, in its own look** (decided 13 November 2026),
+    replacing decision 9 and narrowing decision 10. “Spenst” was a working
+    title. Röskr is Old Norse for brave, vigorous, quick and capable; it is
+    written Röskr in copy and the wordmark and `roskr` in URLs and code
+    (`roskr.team`). The mark is ᚱ, the rune Raidō, in brass. The palette is
+    “Fjord”: night ink on ice paper, fjord blue for action and selection, and
+    brass for the mark and the squad best only. The type is Inter for the UI,
+    with tabular figures everywhere because coaches compare columns of
+    numbers, and Inter Tight for the wordmark and page titles. Grep's token
+    *names*, shell and UI primitives are still shared; its palette and font
+    no longer are. The internal names (`useSpenst`, the `spenst-` classes,
+    the `spenst-theme` key, the repository) and the “Spenst 7” battery are
+    unchanged for now. The design work is the canvas “Röskr — brand
+    identity”.
 
 27. **A test result keeps its best attempt's details** (decided 14 November
-    2026, issue #24; 24–26 are left to the issues that name them). A value
-    read from OVR is stored with every number of the rep, jump or run that
-    gave it — load, mean and peak velocity and power, ROM, time to peak,
+    2026, issue #24). A value read from OVR is stored with every number of
+    the rep, jump or run that gave it — load, mean and peak velocity and power, ROM, time to peak,
     duration, EA index; or a run's split and total time, distance covered,
     speed and start — in one checked `jsonb`, `test_results.details`
     (migration `202611140001`). Hovers, the athlete's history and rankings

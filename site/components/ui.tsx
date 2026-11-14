@@ -1,13 +1,13 @@
 "use client";
 
-import { CircleHelp, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ComponentProps, ReactNode } from "react";
 import { cn, readableInk } from "@/lib/utils";
 
 export function Button({ className, variant = "primary", size = "md", ...props }: ComponentProps<"button"> & { variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg" }) {
-  return <button className={cn("spenst-button inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-45", size === "sm" && "min-h-9 px-3 text-sm", size === "md" && "min-h-11 px-4 text-sm", size === "lg" && "min-h-12 px-5", variant === "primary" && "bg-[var(--signature)] text-[var(--on-bright)] enabled:hover:bg-[var(--signature-hover)]", variant === "secondary" && "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] enabled:hover:border-[var(--ink)]", variant === "ghost" && "text-[var(--ink-soft)] enabled:hover:bg-[var(--hover-wash-strong)] enabled:hover:text-[var(--ink)]", variant === "danger" && "bg-[var(--danger-bg)] text-[var(--danger)] enabled:hover:bg-[var(--danger-bg-hover)]", className)} {...props} />;
+  return <button className={cn("spenst-button inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-45", size === "sm" && "min-h-9 px-3 text-sm", size === "md" && "min-h-11 px-4 text-sm", size === "lg" && "min-h-12 px-5", variant === "primary" && "bg-[var(--signature)] text-[var(--on-signature)] enabled:hover:bg-[var(--signature-hover)]", variant === "secondary" && "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] enabled:hover:border-[var(--ink)]", variant === "ghost" && "text-[var(--ink-soft)] enabled:hover:bg-[var(--hover-wash-strong)] enabled:hover:text-[var(--ink)]", variant === "danger" && "bg-[var(--danger-bg)] text-[var(--danger)] enabled:hover:bg-[var(--danger-bg-hover)]", className)} {...props} />;
 }
 
 // Modals stack: the exercise picker and the warm-up dialog each render a
@@ -114,10 +114,3 @@ export function EmptyState({ icon, title, body, action }: { icon: ReactNode; tit
   return <div className="grid min-h-72 place-items-center rounded-[24px] border border-dashed border-[var(--line-strong)] bg-[var(--surface-raised)]/45 px-6 text-center"><div className="max-w-sm"><div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--paper-deep)]">{icon}</div><h3 className="text-lg font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{body}</p>{action && <div className="mt-5">{action}</div>}</div></div>;
 }
 
-/** An explanation kept off the page: a small “?” that opens it in place. */
-export function HelpTip({ label, children }: { label: string; children: ReactNode }) {
-  return <details className="help-tip">
-    <summary aria-label={label} title={label}><CircleHelp size={15} aria-hidden="true" /></summary>
-    <div className="help-tip-body">{children}</div>
-  </details>;
-}

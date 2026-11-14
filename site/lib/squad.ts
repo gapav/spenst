@@ -55,3 +55,20 @@ export function testDayProgress(day: TestDay, athletes: readonly Athlete[], resu
   const tested = new Set(results.filter((result) => result.testDayId === day.id).map((result) => result.athleteId));
   return { tested: squad.filter((athlete) => tested.has(athlete.id)).length, squad: squad.length };
 }
+
+/** A handball season runs August to July: “2026/27” starts on 1 August 2026. */
+export function seasonLabel(dateKey: string): string {
+  const [year, month] = dateKey.split("-").map(Number);
+  const start = month >= 8 ? year : year - 1;
+  return `${start}/${String((start + 1) % 100).padStart(2, "0")}`;
+}
+
+/** Test days by season, newest season and newest day first. */
+export function testDaysBySeason<T extends Pick<TestDay, "heldOn">>(days: readonly T[]): { season: string; days: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const day of [...days].sort((a, b) => b.heldOn.localeCompare(a.heldOn))) {
+    const season = seasonLabel(day.heldOn);
+    groups.set(season, [...(groups.get(season) ?? []), day]);
+  }
+  return [...groups].map(([season, grouped]) => ({ season, days: grouped }));
+}

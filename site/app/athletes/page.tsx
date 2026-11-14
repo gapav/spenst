@@ -27,7 +27,7 @@ export default function AthletesPage() {
   }, [athletes, currentTeam, results, testDays, measurements, now, customBatteries]);
 
   return <AppShell><div className="spenst-page">
-    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Athletes" description="Every athlete’s latest results and asymmetry. Open one for their profile against the squad." actions={currentTeam && <AddAthleteButton />} />
+    <PageHeading eyebrow={currentTeam?.name ?? "Röskr"} title="Athletes" description="Every athlete’s latest results and asymmetry. Open one for their profile against the squad." actions={currentTeam && <AddAthleteButton />} />
     {!workspaceLoaded || !now ? <p role="status" className="spenst-loading">Loading athletes …</p> : !summaries.length
       ? <EmptyState icon={<UserRound size={24} />} title="No athletes on the team yet" body={currentTeam?.role === "admin" ? "Add the squad one athlete at a time." : "Athletes are added to the team by a team admin."} action={<AddAthleteButton variant="primary" />} />
       : <>

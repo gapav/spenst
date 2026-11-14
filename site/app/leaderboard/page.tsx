@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
   const direction = metric ? (metric.best === "min" ? "lower" : "higher") : test?.direction ?? "higher";
 
   return <AppShell><div className="spenst-page">
-    <PageHeading eyebrow={currentTeam?.name ?? "Spenst"} title="Leaderboard" description="Each test in order, as measured on the test day. No points and no totals — just who was quickest, highest or strongest, and by how much." actions={teamDays.length > 1 && <select className={cn(inputClass, "w-auto")} value={day?.id ?? ""} onChange={(event) => setDayId(event.target.value)} aria-label="Test day">{teamDays.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title} · {formatDay(candidate.heldOn)}</option>)}</select>} />
+    <PageHeading eyebrow={currentTeam?.name ?? "Röskr"} title="Leaderboard" description="Each test in order, as measured on the test day. No points and no totals — just who was quickest, highest or strongest, and by how much." actions={teamDays.length > 1 && <select className={cn(inputClass, "w-auto")} value={day?.id ?? ""} onChange={(event) => setDayId(event.target.value)} aria-label="Test day">{teamDays.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title} · {formatDay(candidate.heldOn)}</option>)}</select>} />
     {!workspaceLoaded ? <p role="status" className="spenst-loading">Loading results …</p> : !day || !run.length
       ? <EmptyState icon={<Medal size={24} />} title="No results to rank" body="The leaderboard fills up once the test day has results." />
       : <>
